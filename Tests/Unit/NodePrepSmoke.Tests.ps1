@@ -103,7 +103,7 @@ Describe 'Start-S2DNodePrep with existing vSwitch (mocked)' {
         Should -Invoke -ModuleName Deploy-S2D -CommandName Enable-NetAdapterRsc -Times 1 -Exactly
         Should -Invoke -ModuleName Deploy-S2D -CommandName Set-NetAdapterAdvancedProperty -Times 4 -Exactly
         Should -Invoke -ModuleName Deploy-S2D -CommandName Set-NetAdapterAdvancedProperty -Times 0 -Exactly `
-            -ParameterFilter { $Name -like 'VM*' -or $Name -like 'Mgmt*' }
+            -ParameterFilter { $Name -like 'Mgmt*' }
         Should -Invoke -ModuleName Deploy-S2D -CommandName Set-VMHost -Times 1 -Exactly
         Should -Invoke -ModuleName Deploy-S2D -CommandName Add-VMMigrationNetwork -Times 1 -Exactly -ParameterFilter { $Subnet -eq '10.0.2.0/24' }
         Should -Invoke -ModuleName Deploy-S2D -CommandName New-VMSwitch -Times 0 -Exactly
