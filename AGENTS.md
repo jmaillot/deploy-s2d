@@ -3,9 +3,9 @@
 Windows PowerShell 5.1, S2D on Windows Server 2025 (FR-FR locale). Pester 5 unit tests + GitHub Actions CI.
 Layout: `Deploy-S2D/` is the shippable module (loader `.psm1` dot-sources
 `Private/` then `Public/`, one function per file, explicit `FunctionsToExport`,
-`en-US/` about help). `Scripts/` holds thin forwarders (`Import-Module` + splat),
-the reboot runbook, canned examples, and the vendored helper. Legacy files live
-in `archive/`.
+`en-US/` about help). `Scripts/` holds the reboot runbook, the vendored helper,
+and operational one-offs. The module functions are the interface — no wrapper
+scripts. Legacy files live in `archive/`.
 
 ## Commands
 - Syntax check (Windows): `pwsh -NoProfile -Command "[void][System.Management.Automation.PSParser]::Tokenize((Get-Content -Raw '<file>'), [ref]$null)"`

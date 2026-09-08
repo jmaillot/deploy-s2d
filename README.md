@@ -1,149 +1,131 @@
-# S2DCluster
+# S2DCluster — Usage Guide
 
 Deploys a 2-node Storage Spaces Direct (S2D) cluster on Windows Server 2025:
 per-node network/storage prep, then one-shot cluster creation with quorum,
-S2D enablement, and a mirrored CSV volume. Includes a safe-reboot runbook and a
-disk-health repair helper. PowerShell 5.1, FR/EN locales supported.
+S2D enablement, and a mirrored CSV volume. PowerShell 5.1, FR/EN locales.
 
-## Requirements
+## 0. Prerequisites checklist
 
-- 2x Windows Server 2025 (Datacenter), Failover-Clustering + Hyper-V roles, **run elevated**
-- **10 GbE or faster RDMA-capable adapters are mandatory for the storage fabric**
-  (`StorageA`/`StorageB`: jumbo MTU 9014, QoS/DCB + RDMA are configured by NodePrep;
-  below 10 GbE, S2D resync/repair traffic will saturate the link — unsupported setup)
-- 1x witness: file share (`\\server\share$`) or Azure Cloud Witness (account + key)
-- 1x static cluster IP; per-node static storage IPs
-- NIC plan per node: N management + M VM + StorageA + StorageB + LiveMig (see below)
+- [ ] 2x Windows Server 2025 (Datacenter), Failover-Clustering + Hyper-V roles
+- [ ] **10 GbE or faster RDMA-capable adapters on the storage fabric** — preflight
+  throws on anything slower. Below 10 GbE, resync/repair traffic saturates the link.
+- [ ] PERC/HBA in **pass-through (HBA) mode, not RAID** — preflight throws when no
+  poolable disks are visible. At least some SSD/NVMe for the cache tier (all-HDD warns).
+- [ ] NIC firmware/drivers current (preflight prints a driver table — check it
+  against your vendor matrix), BIOS virtualization on for SR-IOV
+- [ ] 1x witness: file share (`\\server\share$`) or Azure Cloud Witness (account + key)
+- [ ] 1x static cluster IP; per-node static storage IPs on **different subnets**
+- [ ] Elevated shell on the nodes themselves — never run NodePrep from a
+  workstation (it renames the *local* NICs)
 
-## Order of operations
+Fill this plan before starting (example values):
 
-```
-1. Copy the folder to EACH node, run Scripts/Invoke-S2DNodePrep.ps1 locally on each
-2. From ONE node, run Scripts/New-S2DCluster.ps1 once
-3. Validate: Get-VirtualDisk / Get-StorageJob / Failover Cluster Manager
-```
+| Role | HV1 | HV2 |
+|---|---|---|
+| Mgmt NICs | Mgmt01, Mgmt02 | Mgmt01, Mgmt02 |
+| VM NICs | Vm01, Vm02 | Vm01, Vm02 |
+| StorageA NIC / IP | Storage01 / 192.168.200.1 | Storage01 / 192.168.200.2 |
+| StorageB NIC / IP | Storage02 / 192.168.201.1 | Storage02 / 192.168.201.2 |
+| LiveMig NIC (+opt IP) | Live01 | Live01 |
+| Cluster | ClusterPDL / 192.168.1.240, witness `\\NTSVR22\ClusterPDL$` | |
 
-Always dry-run first (`-WhatIf`). Never run NodePrep from a workstation —
-it renames the *local* NICs.
+## 1. Prepare each node (run locally, elevated, on HV1 then HV2)
 
-## Scripts
-
-### 1. `Scripts/Invoke-S2DNodePrep.ps1` — per node, run locally on each
-
-Preflight first: `StorageA/B` and `LiveMig` must be **10 Gbps+ and RDMA-capable** —
-anything slower (e.g. 1G) or non-RDMA throws before anything is changed. Then it
-renames NICs (`StorageA/B`, `LiveMig`, `MgmtN`, `VMN`), sets jumbo MTU + static
-storage IPs, QoS/DCB + RDMA, builds `vSwitch-VM` (SET team for 2+ VM NICs, plain
-vSwitch for 1), disables VMQ/RSC, sets live migration to SMB.
+Copy the repo folder to the node first — the picker lists *local* adapters.
 
 ```powershell
-.\Scripts\Invoke-S2DNodePrep.ps1 -MgmtAdapters "Mgmt01","Mgmt02" -VMAdapters "Vm01","Vm02" `
-  -StorageA "Storage01" -StorageB "Storage02" -LiveMigrationAdapter "Live01" `
-  -StorageAIP "192.168.200.1" -StorageBIP "192.168.201.1"
+Import-Module .\Deploy-S2D\Deploy-S2D.psm1
+Start-S2DNodePrep -MgmtAdapters "Mgmt01","Mgmt02" -VMAdapters "Vm01","Vm02" -StorageA "Storage01" -StorageB "Storage02" -LiveMigrationAdapter "Live01" -StorageAIP "192.168.200.1" -StorageBIP "192.168.201.1"
 ```
+
+Omit any NIC name to pick it from a numbered console menu instead — each menu
+states the role your pick **will be renamed to** (`1/5` StorageA … `5/5` VM).
+MGMT/VM take comma lists (`0,2`); blank finishes; `Q` aborts. Already-picked
+NICs disappear from later menus; one NIC can't serve two roles.
+
+What runs, in order: preflight (reads only — ≥4 NICs, 10 Gbps + proven RDMA,
+poolable disks) → renames (verified after the fact) → jumbo MTU + static IPs →
+QoS/DCB + RDMA → vSwitch (SET team for 2+ VM NICs, plain for 1) → VMQ/RSC off →
+live-migration binding (only with `-LiveMigrationIP`, else a warning).
 
 | Parameter | Required | Notes |
 |---|---|---|
-| `MgmtAdapters`, `VMAdapters` | no — picker if omitted | Any count (1+). Pass a comma list, or pick in the console menu. Already-picked NICs are hidden; one NIC can't serve two roles |
-| `StorageA/B`, `LiveMigrationAdapter` | no — picker if omitted | Exactly **2 storage adapters** (one becomes StorageA, one StorageB — the two fabrics) and exactly **1 LiveMigration adapter**. One console menu per role |
-| `StorageAIP/BIP` | yes | This node's storage IPs (differ per node); must parse, must differ, must sit on **different subnets** (multipath) |
+| `MgmtAdapters`, `VMAdapters` | picker if omitted | Any count (1+) |
+| `StorageA/B`, `LiveMigrationAdapter` | picker if omitted | Exactly **2 storage** (the two fabrics), exactly **1 LiveMig** — by design |
+| `StorageAIP/BIP` | yes | Must parse, must differ, must sit on **different subnets** |
 | `StoragePrefix` | no | Default `24` (range 1–31) |
-| `LiveMigrationIP/Prefix` | no | Optional. If supplied, LiveMig gets the IP and is bound as *the* migration network (`Set-VMHost`); if omitted you get a warning and migration traffic stays unbound |
+| `LiveMigrationIP/Prefix` | no | Binds *the* migration network (`Add-VMMigrationNetwork`); omitted = warning |
 | `LogPath` | no | Default `C:\S2D_Deployment.log` |
 
-Preflight runs before anything changes (reads only, so it also runs under
-`-WhatIf`): ≥4 physical NICs, 10 Gbps+ link + proven RDMA on Storage/LiveMig
-(missing SMB binding info falls back to adapter RDMA settings — unproven RDMA
-throws), poolable disks present (`CanPool`, i.e. PERC must be HBA/pass-through,
-not RAID), all-HDD warns (no cache tier), plus a driver table and a BIOS
-virtualization check (both advisory). Requires elevation. Renames are verified
-after the fact — a collision from a prior partial run throws loudly instead of
-misconfiguring. QoS cleanup touches only our `SMBDirect` policy.
+Always dry-run first: append `-WhatIf` (preflight still executes — that's the point).
 
-Omit NIC names to get guided picking: one numbered console menu per role, each
-stating the role your pick **will be renamed to** (`1/5` = StorageA, `2/5` =
-StorageB, `3/5` = LiveMig, `4/5` = MGMT, `5/5` = VM) with invalid input
-reprompting instead of failing. For MGMT/VM enter comma numbers (`0,2`); blank
-means none. `Q` aborts. Console-native (works on Server Core, help stays
-visible) — no popup. Example with only Mgmt/VM omitted: 2 menus appear, the
-rest use your values.
-
-### 2. `Scripts/New-S2DCluster.ps1` — once, from one node
-
-Validates (`Test-Cluster`, FR-first/EN-fallback), creates the cluster, sets quorum,
-enables S2D, creates the mirrored CSV (ReFS), constrains SMB Multichannel to
-StorageA/B, renames cluster networks.
+## 2. Create the cluster (once, from either node)
 
 ```powershell
-.\Scripts\New-S2DCluster.ps1 -ClusterName "ClusterPDL" -ClusterNodes "HV1","HV2" `
-  -ClusterIP "192.168.1.240" -WitnessType "FileShare" `
-  -FileShareWitness "\\NTSVR22.intra-pdl.fr\ClusterPDL$" `
-  -VolumeName "CSV_S2D" -SizingMode "Auto"
+New-S2DCluster -ClusterName "ClusterPDL" -ClusterNodes "HV1","HV2" -ClusterIP "192.168.1.240" -WitnessType "FileShare" -FileShareWitness "\\NTSVR22\ClusterPDL$" -VolumeName "CSV_S2D" -SizingMode "Auto"
 ```
 
-| Parameter | Required | Notes |
-|---|---|---|
-| `ClusterName`, `ClusterNodes`, `ClusterIP` | yes | Nodes accept any count |
-| `WitnessType` | no | `FileShare` (default) or `Cloud` |
-| `FileShareWitness` | FileShare only | UNC path; throws if missing |
-| `AzStorageAccount/Key` | Cloud only | Throw if missing. Key is `SecureString` — never plaintext: `$key = Read-Host -AsSecureString`, then `-AzStorageKey $key`. Decrypted only for the quorum call, cleared after, never logged |
-| `SizingMode` | no | `Auto` (default, keeps `CapacityReservePercent`, default 20%; `-UseFullPool` skips reserve) or `Fixed` (requires `-VolumeSize`, e.g. `2TB`) |
-
-### 3. `Scripts/Reboot-S2D.ps1` — safe reboot of one node
-
-Guided 10-step runbook: health check → drain → storage maintenance → reboot →
-exit maintenance → resync wait (timeout, default 120 min) → resume with failback.
-Run from a *different* node; resumes at step 7 if the node already rebooted.
+Validates (`Test-Cluster`), creates the cluster, sets quorum, enables S2D,
+creates the mirrored CSV (ReFS), constrains SMB Multichannel to StorageA/B,
+renames cluster networks. Cloud witness instead:
 
 ```powershell
-.\Scripts\Reboot-S2D.ps1 -NodeName "HV1"                     # interactive
-.\Scripts\Reboot-S2D.ps1 -NodeName "HV1" -Force -WhatIf      # dry-run, no prompts
+$key = Read-Host -AsSecureString
+New-S2DCluster -ClusterName "ClusterPDL" -ClusterNodes "HV1","HV2" -ClusterIP "192.168.1.240" -WitnessType "Cloud" -AzStorageAccount "acc" -AzStorageKey $key -SizingMode "Auto"
 ```
 
-### 4. `Clear-PhysicalDiskHealthData.ps1` — vendored, use as-is
+The key is `SecureString` end to end — decrypted only for the quorum call,
+cleared after, never logged. `Fixed` sizing needs `-VolumeSize` (e.g. `2TB`);
+`Auto` keeps 20% reserve unless `-UseFullPool`.
 
-Don MacGregor's Health Service flag resetter (Intent/Policy via `healthapi.dll`).
-Do not modify without approval.
+## 3. Validate the deployment
+
+```powershell
+Get-VirtualDisk | Format-Table FriendlyName, HealthStatus, OperationalStatus
+Get-StorageJob
+Get-StoragePool -FriendlyName "S2D on ClusterPDL" | Select-Object Size, AllocatedSize
+```
+
+Plus Failover Cluster Manager: networks named StorageA/StorageB/Mgmt, witness
+online, CSV mounted. Run a real `Test-Cluster` before production cutover
+(`-WhatIf` runs skip it by design).
+
+## 4. Day-2 operations
+
+Safe reboot (run from the *other* node; `-Force -WhatIf` for a dry run):
+
+```powershell
+.\Scripts\Reboot-S2D.ps1 -NodeName "HV1"
+```
+
+Disk health flags (vendored Don MacGregor helper, use as-is):
 
 ```powershell
 Get-PhysicalDisk -UniqueId <id> | Clear-PhysicalDiskHealthData -Intent -Force
 ```
 
-### Module + canned examples
+## Troubleshooting
 
-- `Deploy-S2D/` is the shippable module (`Deploy-S2D.psd1/.psm1` v1.6.0,
-  `Public/` = one function per file, `Private/` = helpers, `en-US/` = about help):
-  `Start-S2DNodePrep`, `New-S2DCluster`, `Start-S2DDeployment` (back-compat wrapper).
-- `Scripts/` holds the thin forwarders, the reboot runbook, the canned
-  `DeployCmd-*` examples, and the vendored disk-health helper.
-  `archive/` holds retired files.
+| Symptom | Cause / fix |
+|---|---|
+| `found 3 physical NIC(s), minimum 4` | Not a node (or missing NICs). NodePrep needs StorageA/B + LiveMig + ≥1 VM. |
+| `'X' link is 1 Gbps, 10 Gbps minimum required` | NIC/switch/cable below spec. Fix hardware, re-run. |
+| `not RDMA-capable` / `RDMA capability unproven` | Enable RDMA stack / install vendor driver first. |
+| `no poolable disks (CanPool)` | PERC in RAID mode — switch controller to HBA/pass-through. |
+| `resolves to N adapter(s)` after rename | Collision from a partial run — clean the duplicate name, re-run. |
+| No Mandatory prompt / stale behavior | Stale module in session — `Import-Module ... -Force` every new shell. |
+| `Test-Cluster` include mismatch | FR-first/EN-fallback is built in; on other locales, extend the list. |
 
-## Testing
+## Reference
 
-Pester 5 unit tests live in `Tests/` (manifest, parameter contracts, boundary
-throws, one fully-mocked NodePrep run). GitHub Actions (`.github/workflows/ci.yml`,
-`windows-latest`, PowerShell 5.1) runs analyzer errors + Pester on push/PR.
-
-```powershell
-Invoke-ScriptAnalyzer -Path . -Recurse -Settings ./PSScriptAnalyzerSettings.psd1 -Severity Error
-Invoke-Pester -Path ./Tests -Output Detailed
-```
-
-## Design notes (why)
-
-- **Storage takes exactly 2 adapters by design** — one NIC renamed to StorageA,
-  one to StorageB (the two fabrics the QoS/RDMA/SMB-constraint code is written
-  for). Extra NICs belong in the MGMT/VM pools. Teamed/multi-NIC-per-fabric
-  storage would be a different design.
-- **LiveMigration takes exactly 1 adapter by design.** One LiveMig network per
-  host is the supported topology (Hyper-V fails over to other networks if it
-  drops). Multi-NIC live migration would be a different design — open an issue
-  if you need it.
-- **No environment defaults in shared code.** Names/IPs are `Mandatory` (the
-  engine prompts when missing); only technical tuning has defaults. Values live
-  in the `DeployCmd-*` examples. This is why a custom question-menu was rejected:
-  `Mandatory` already prompts interactively *and* stays automation-safe.
-- **Idempotent where it matters**: cluster, vSwitch, and volume steps guard with
-  `Get-` before `New-`; maintenance resume happens exactly once, after resync.
-- **Every destructive path supports `-WhatIf`**; lint gate is
-  `Invoke-ScriptAnalyzer -Settings .\PSScriptAnalyzerSettings.psd1` (see `AGENTS.md`).
+- Module `Deploy-S2D/` (v1.6.0, shippable): `Start-S2DNodePrep`,
+  `New-S2DCluster`, `Start-S2DDeployment` (back-compat wrapper). `Public/` = one
+  function per file, `Private/` = helpers, `en-US/` = conceptual help.
+  `Scripts/` = reboot runbook, vendored helper, one-offs. `archive/` = retired.
+- Tests: `Tests/` (Pester 5) + `.github/workflows/ci.yml` (analyzer errors + Pester).
+  Local: `Invoke-ScriptAnalyzer -Path . -Recurse -Settings ./PSScriptAnalyzerSettings.psd1 -Severity Error`
+  then `Invoke-Pester -Path ./Tests -Output Detailed`.
+- Design notes: exactly 2 storage NICs (two fabrics) and exactly 1 LiveMig by
+  design; no environment defaults in shared code (engine prompts instead);
+  every destructive path supports `-WhatIf`; resume happens exactly once,
+  after resync.
