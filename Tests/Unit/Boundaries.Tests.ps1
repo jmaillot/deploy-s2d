@@ -12,6 +12,16 @@ Describe 'New-S2DCluster boundaries' {
         { New-S2DCluster -ClusterName X -ClusterNodes Y,Z -ClusterIP 192.168.1.240 -WitnessType Cloud -AzStorageAccount 'acc' -ErrorAction Stop } |
             Should -Throw '*AzStorageKey*'
     }
+
+    It 'throws when Fixed volume size is missing' {
+        { New-S2DCluster -ClusterName X -ClusterNodes Y,Z -ClusterIP 192.168.1.240 -FileShareWitness '\\S\W$' -SizingMode Fixed -ErrorAction Stop } |
+            Should -Throw '*VolumeSize*'
+    }
+
+    It 'throws when Fixed volume size is unparseable' {
+        { New-S2DCluster -ClusterName X -ClusterNodes Y,Z -ClusterIP 192.168.1.240 -FileShareWitness '\\S\W$' -SizingMode Fixed -VolumeSize 'potato' -ErrorAction Stop } |
+            Should -Throw '*Unparseable*'
+    }
 }
 
 Describe 'Start-S2DNodePrep boundaries' {

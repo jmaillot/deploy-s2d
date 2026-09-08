@@ -14,7 +14,7 @@ Console NIC picker. Lists physical adapters with help text, returns chosen names
     )
 
     if (-not [Environment]::UserInteractive) {
-        throw "Non-interactive session: supply NIC names explicitly instead of relying on the picker ($Title)."
+        throw "Non-interactive session (including WinRM remote shells, which always report non-interactive): supply all NIC names explicitly instead of relying on the picker ($Title)."
     }
 
     $nics = @(Get-NetAdapter -Physical -ErrorAction Stop |
@@ -63,6 +63,8 @@ Console NIC picker. Lists physical adapters with help text, returns chosen names
             Write-Warning "Invalid choice. Valid numbers: 0 to $($nics.Count - 1)."
             continue
         }
+        $picked = @($picked | Select-Object -Unique)
+        if (-not $Multi) { return $picked[0] }
         return $picked
     }
 }

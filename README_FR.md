@@ -52,7 +52,7 @@ deux rôles.
 Ordre d'exécution : pré-contrôle (lecture seule — ≥4 cartes, 10 Gbps + RDMA
 prouvé, disques agrégeables) → renommage (vérifié après coup) → MTU jumbo + IP
 statiques → QoS/DCB + RDMA → vSwitch (équipe SET pour 2+ cartes VM, simple pour 1)
-→ VMQ/RSC off sur les membres d'équipe, EEE off sur Mgmt → liaison du réseau de migration (seulement avec `-LiveMigrationIP`,
+→ VMQ/RSS/RSC on + Jumbo off (VM), VMQ/RSC/EEE off + RSS on (storage), VMQ/EEE off (Mgmt) → liaison du réseau de migration (seulement avec `-LiveMigrationIP`,
 sinon avertissement).
 
 | Paramètre | Requis | Notes |

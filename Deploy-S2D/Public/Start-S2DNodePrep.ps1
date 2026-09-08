@@ -90,7 +90,9 @@ Dry run with NIC picker guiding every adapter choice.
     Write-Host "== NodePrep - Starting on $(hostname) ==" -ForegroundColor Cyan
 
     # NIC discovery: anything not supplied is picked interactively.
-    $picked = @()
+    # Pre-supplied names join the exclusion pool so later menus cannot re-offer them.
+    $picked = @($StorageA, $StorageB, $LiveMigrationAdapter) + @($MgmtAdapters) + @($VMAdapters) |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
     Write-Host "NIC discovery: pick in the console (Q aborts). Titles name the role." -ForegroundColor Cyan
     if ([string]::IsNullOrWhiteSpace($StorageA))             { $StorageA = Select-S2DNic -Title "StorageA (1/5)" -Help "This adapter will be RENAMED to StorageA (fabric A). 10GbE+ RDMA required - preflight checks next." -Exclude $picked; $picked += $StorageA }
     if ([string]::IsNullOrWhiteSpace($StorageB))             { $StorageB = Select-S2DNic -Title "StorageB (2/5)" -Help "This adapter will be RENAMED to StorageB (fabric B). 10GbE+ RDMA required - preflight checks next." -Exclude $picked; $picked += $StorageB }
@@ -103,7 +105,8 @@ Dry run with NIC picker guiding every adapter choice.
     Write-S2DLog "Preflight - 10 Gbps + RDMA on storage/LiveMig (original names)"
     $minLinkBps = 10000000000
     foreach ($iface in @($StorageA, $StorageB, $LiveMigrationAdapter)) {
-        $cim = Get-CimInstance Win32_NetworkAdapter -Filter "NetConnectionID = '$iface'" -ErrorAction SilentlyContinue
+        $esc = $iface -replace "'", "''"
+        $cim = Get-CimInstance Win32_NetworkAdapter -Filter "NetConnectionID = '$esc'" -ErrorAction SilentlyContinue
         if (-not $cim) { throw "Preflight failed: NIC '$iface' not found on $(hostname)." }
         if ($null -eq $cim.Speed -or $cim.Speed -lt $minLinkBps) {
             $seen = if ($null -eq $cim.Speed) { "unknown (disconnected?)" } else { ([math]::Round($cim.Speed/1e9,1)).ToString() + " Gbps" }
@@ -239,11 +242,29 @@ Dry run with NIC picker guiding every adapter choice.
             }
         }
 
-        Write-S2DLog "VMQ/RSC - $(hostname)"
-        Get-NetAdapterVmq -Name $RenamedVMAdapters -ErrorAction SilentlyContinue | Where-Object {$_.Enabled} | Disable-NetAdapterVmq -NoRestart
-        Get-NetAdapterRsc -Name $RenamedVMAdapters -ErrorAction SilentlyContinue | Disable-NetAdapterRsc -ErrorAction SilentlyContinue
+        Write-S2DLog "VMQ/RSS/RSC on, Jumbo off (VM) - $(hostname)"
+        Enable-NetAdapterVmq -Name $RenamedVMAdapters -ErrorAction SilentlyContinue | Out-Null
+        Enable-NetAdapterRss -Name $RenamedVMAdapters -ErrorAction SilentlyContinue | Out-Null
+        Enable-NetAdapterRsc -Name $RenamedVMAdapters -ErrorAction SilentlyContinue | Out-Null
+        try { Set-NetAdapterAdvancedProperty -Name $RenamedVMAdapters -RegistryKeyword "*JumboPacket" -RegistryValue 1514 -ErrorAction Stop } catch { Write-Verbose "Jumbo off failed on VM adapters, leaving driver defaults." }
 
-        Write-S2DLog "EEE off (Mgmt) - $(hostname)"
+        Write-S2DLog "Storage tuning (VMQ/RSC/EEE off, RSS on) - $(hostname)"
+        Disable-NetAdapterVmq -Name @("StorageA","StorageB") -ErrorAction SilentlyContinue
+        Disable-NetAdapterRsc -Name @("StorageA","StorageB") -ErrorAction SilentlyContinue
+        Enable-NetAdapterRss -Name @("StorageA","StorageB") -ErrorAction SilentlyContinue
+        foreach ($st in @("StorageA","StorageB")) {
+            $eeeSt = Get-NetAdapterAdvancedProperty -Name $st -ErrorAction SilentlyContinue |
+                Where-Object { $_.DisplayName -match 'Energy Efficient|EEE|Green Ethernet|Power Sav' } |
+                Select-Object -First 1
+            if ($eeeSt) {
+                Set-NetAdapterAdvancedProperty -Name $st -DisplayName $eeeSt.DisplayName -DisplayValue "Disabled" -ErrorAction SilentlyContinue | Out-Null
+            } else {
+                Write-Verbose "No EEE property on $st, skipping."
+            }
+        }
+
+        Write-S2DLog "VMQ off + EEE off (Mgmt) - $(hostname)"
+        Disable-NetAdapterVmq -Name $RenamedMgmtAdapters -ErrorAction SilentlyContinue
         foreach ($mgmt in $RenamedMgmtAdapters) {
             $eeeProp = Get-NetAdapterAdvancedProperty -Name $mgmt -ErrorAction SilentlyContinue |
                 Where-Object { $_.DisplayName -match 'Energy Efficient|EEE|Green Ethernet|Power Sav' } |
@@ -255,7 +276,9 @@ Dry run with NIC picker guiding every adapter choice.
             }
         }
 
-        Write-S2DLog "EEE off (LiveMig) - $(hostname)"
+        Write-S2DLog "VMQ off, RSS on, EEE off (LiveMig) - $(hostname)"
+        Disable-NetAdapterVmq -Name "LiveMig" -ErrorAction SilentlyContinue
+        Enable-NetAdapterRss -Name "LiveMig" -ErrorAction SilentlyContinue
         $eeeLive = Get-NetAdapterAdvancedProperty -Name "LiveMig" -ErrorAction SilentlyContinue |
             Where-Object { $_.DisplayName -match 'Energy Efficient|EEE|Green Ethernet|Power Sav' } |
             Select-Object -First 1

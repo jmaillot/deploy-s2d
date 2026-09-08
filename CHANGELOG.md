@@ -5,6 +5,10 @@
 - LiveMig: jumbo MTU, EEE off, DNS registration + NetBIOS off (same hygiene
   as storage); DNS/NetBIOS off also on StorageA/B
 - Mgmt: EEE off (best-effort across vendor property names)
+- Storage: VMQ/RSC/EEE off, RSS on (VM side untouched)
+- VM adapters: VMQ/RSS/RSC on, Jumbo off; Mgmt: VMQ off. VMMQ is per-vNIC
+  post-deploy (`Set-VMNetworkAdapter -VmmqEnabled/-VrssEnabled`), not NodePrep
+  (no VMs/vNICs exist yet — NodePrep only enables its physical prerequisites)
 
 ## [1.6.0] - 2026-09-08
 ### Changed

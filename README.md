@@ -47,7 +47,7 @@ NICs disappear from later menus; one NIC can't serve two roles.
 
 What runs, in order: preflight (reads only — ≥4 NICs, 10 Gbps + proven RDMA,
 poolable disks) → renames (verified after the fact) → jumbo MTU + static IPs →
-QoS/DCB + RDMA → vSwitch (SET team for 2+ VM NICs, plain for 1) → VMQ/RSC off on team members, EEE off on Mgmt →
+QoS/DCB + RDMA → vSwitch (SET team for 2+ VM NICs, plain for 1) → VMQ/RSS/RSC on + Jumbo off (VM), VMQ/RSC/EEE off + RSS on (storage), VMQ/EEE off (Mgmt) →
 live-migration binding (only with `-LiveMigrationIP`, else a warning).
 
 | Parameter | Required | Notes |

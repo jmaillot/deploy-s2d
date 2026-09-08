@@ -19,6 +19,12 @@ Describe 'Parameter contracts' {
         }
     }
 
+    It 'ClusterNodes requires exactly 2 nodes' {
+        $cnt = (Get-Command New-S2DCluster).Parameters['ClusterNodes'].Attributes.Where({ $_ -is [System.Management.Automation.ValidateCountAttribute] })
+        $cnt.MinLength | Should -Be 2
+        $cnt.MaxLength | Should -Be 2
+    }
+
     It 'AzStorageKey is SecureString' {
         (Get-Command New-S2DCluster).Parameters['AzStorageKey'].ParameterType |
             Should -Be ([System.Security.SecureString])

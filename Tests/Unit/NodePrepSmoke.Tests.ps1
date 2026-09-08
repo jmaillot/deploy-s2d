@@ -12,8 +12,8 @@ BeforeAll {
         'Remove-NetIPAddress', 'New-NetIPAddress', 'Remove-NetQosPolicy', 'Get-NetQosPolicy',
         'New-NetQosPolicy', 'Enable-NetQosFlowControl', 'Disable-NetQosFlowControl',
         'Set-NetQosDcbxSetting', 'Get-NetAdapterQos', 'Enable-NetAdapterQos',
-        'Get-NetAdapterRdma', 'Enable-NetAdapterRdma', 'Get-NetAdapterVmq', 'Disable-NetAdapterVmq',
-        'Get-NetAdapterRsc', 'Disable-NetAdapterRsc', 'Get-VMSwitch', 'New-VMSwitch',
+        'Get-NetAdapterRdma', 'Enable-NetAdapterRdma', 'Get-NetAdapterVmq', 'Disable-NetAdapterVmq', 'Enable-NetAdapterVmq', 'Enable-NetAdapterRss', 'Enable-NetAdapterRsc',
+        'Get-NetAdapterRsc', 'Disable-NetAdapterRsc', 'Enable-NetAdapterRss', 'Get-VMSwitch', 'New-VMSwitch',
         'Set-VMSwitch', 'Set-VMHost', 'Get-VMMigrationNetwork', 'Add-VMMigrationNetwork',
         'Set-DnsClient'
     )
@@ -74,8 +74,11 @@ BeforeAll {
     Mock -ModuleName Deploy-S2D Enable-NetAdapterQos -MockWith {}
     Mock -ModuleName Deploy-S2D Get-NetAdapterRdma -MockWith { [pscustomobject]@{ Enabled = $true } }
     Mock -ModuleName Deploy-S2D Enable-NetAdapterRdma -MockWith {}
-    Mock -ModuleName Deploy-S2D Get-NetAdapterVmq -MockWith {}
+    Mock -ModuleName Deploy-S2D Get-NetAdapterVmq -MockWith { [pscustomobject]@{ Enabled = $true } }
     Mock -ModuleName Deploy-S2D Disable-NetAdapterVmq -MockWith {}
+    Mock -ModuleName Deploy-S2D Enable-NetAdapterVmq -MockWith {}
+    Mock -ModuleName Deploy-S2D Enable-NetAdapterRss -MockWith {}
+    Mock -ModuleName Deploy-S2D Enable-NetAdapterRsc -MockWith {}
     Mock -ModuleName Deploy-S2D Get-NetAdapterRsc -MockWith {}
     Mock -ModuleName Deploy-S2D Disable-NetAdapterRsc -MockWith {}
     Mock -ModuleName Deploy-S2D Get-VMSwitch -MockWith { [pscustomobject]@{ Name = 'vSwitch-VM' } }
@@ -93,7 +96,12 @@ Describe 'Start-S2DNodePrep with existing vSwitch (mocked)' {
         Should -Invoke -ModuleName Deploy-S2D -CommandName Rename-NetAdapter -Times 7 -Exactly
         Should -Invoke -ModuleName Deploy-S2D -CommandName New-NetIPAddress -Times 3 -Exactly
         Should -Invoke -ModuleName Deploy-S2D -CommandName Set-DnsClient -Times 3 -Exactly
-        Should -Invoke -ModuleName Deploy-S2D -CommandName Set-NetAdapterAdvancedProperty -Times 3 -Exactly
+        Should -Invoke -ModuleName Deploy-S2D -CommandName Disable-NetAdapterVmq -Times 4 -Exactly
+        Should -Invoke -ModuleName Deploy-S2D -CommandName Disable-NetAdapterRsc -Times 1 -Exactly
+        Should -Invoke -ModuleName Deploy-S2D -CommandName Enable-NetAdapterVmq -Times 1 -Exactly
+        Should -Invoke -ModuleName Deploy-S2D -CommandName Enable-NetAdapterRss -Times 2 -Exactly
+        Should -Invoke -ModuleName Deploy-S2D -CommandName Enable-NetAdapterRsc -Times 1 -Exactly
+        Should -Invoke -ModuleName Deploy-S2D -CommandName Set-NetAdapterAdvancedProperty -Times 4 -Exactly
         Should -Invoke -ModuleName Deploy-S2D -CommandName Set-NetAdapterAdvancedProperty -Times 0 -Exactly `
             -ParameterFilter { $Name -like 'VM*' -or $Name -like 'Mgmt*' }
         Should -Invoke -ModuleName Deploy-S2D -CommandName Set-VMHost -Times 1 -Exactly
