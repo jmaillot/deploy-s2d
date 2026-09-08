@@ -31,7 +31,7 @@ BeforeAll {
     Mock -ModuleName Deploy-S2D Get-SmbClientNetworkInterface -MockWith {
         [pscustomobject]@{ InterfaceAlias = 'mock'; RdmaCapable = $true }
     }
-    Mock -ModuleName Deploy-S2D Get-PhysicalDisk -MockWith {
+    Mock -ModuleName Deploy-S2D Get-S2DPoolableDisk -MockWith {
         [pscustomobject]@{ FriendlyName = 'MockDisk'; MediaType = 'SSD'; Size = 1TB; HealthStatus = 'Healthy'; CanPool = $true }
     }
     Mock -ModuleName Deploy-S2D Rename-NetAdapter -MockWith {}

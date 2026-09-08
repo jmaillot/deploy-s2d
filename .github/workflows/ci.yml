@@ -12,10 +12,10 @@ jobs:
         shell: powershell
         run: |
           Set-PSRepository PSGallery -InstallationPolicy Trusted
-          # Pinned to v5: the suite is authored against the v5 mock/assert API.
+          # Pinned to v5 major: the suite is authored against the v5 mock/assert API.
           # v6 migration is separate work (v6 changed mock scoping behavior).
-          Install-Module Pester -RequiredVersion 5.7.1 -Force -SkipPublisherCheck
-          Import-Module Pester -RequiredVersion 5.7.1
+          Install-Module Pester -MinimumVersion 5.0 -MaximumVersion 5.99 -Force -SkipPublisherCheck
+          Import-Module Pester -MinimumVersion 5.0 -MaximumVersion 5.99
           Install-Module PSScriptAnalyzer -Force
 
       - name: Lint (errors fail the build)

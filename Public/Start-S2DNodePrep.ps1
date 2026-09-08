@@ -91,7 +91,7 @@ the migration network; without it LiveMig stays unbound (warning).
     }
 
     Write-S2DLog "Preflight - storage (Dell: HBA mode + media tiers)"
-    $poolable = @(Get-PhysicalDisk -ErrorAction SilentlyContinue | Where-Object {$_.CanPool -eq $true})
+    $poolable = @(Get-S2DPoolableDisk)
     if ($poolable.Count -eq 0) {
         throw "Preflight failed: no poolable disks (CanPool). PERC in RAID mode? S2D needs HBA/pass-through so physical disks are visible."
     }

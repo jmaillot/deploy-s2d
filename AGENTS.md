@@ -27,6 +27,8 @@ forwarders (`Import-Module` + splat). Legacy files live in `archive/`.
 - Display text inside functions must use `Write-Host`/`Write-Verbose`, never bare
   strings — bare output is captured into the caller's assignment (it once
   silently joined a return value instead of displaying).
+- Wrap CIM-module cmdlets with exotic parameter types (e.g. `Get-PhysicalDisk`)
+  in thin private helpers — Pester cannot generate mocks for them directly.
 - Explicit `-ErrorAction Stop` on load-bearing lookups (`Get-StoragePool`, `Get-Cluster`);
 - No environment-specific defaults in shared code (`HV1`, `Ethernet N`, lab UNC paths).
   Identity values (names, IPs, cluster) are `[Parameter(Mandatory)]` with no default —

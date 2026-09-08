@@ -13,7 +13,9 @@ Describe 'Deploy-S2D module' {
     }
 
     It 'keeps helpers private' {
-        (Get-Command -Module Deploy-S2D).Name | Should -Not -Contain 'Write-S2DLog'
-        (Get-Command -Module Deploy-S2D).Name | Should -Not -Contain 'Select-S2DNic'
+        $names = (Get-Command -Module Deploy-S2D).Name
+        foreach ($h in @('Write-S2DLog', 'Select-S2DNic', 'Get-S2DPoolableDisk')) {
+            $names | Should -Not -Contain $h
+        }
     }
 }
