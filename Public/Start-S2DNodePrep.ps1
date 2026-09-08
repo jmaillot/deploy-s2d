@@ -161,7 +161,11 @@ the migration network; without it LiveMig stays unbound (warning).
             $lmBytes = ([System.Net.IPAddress]$LiveMigrationIP).GetAddressBytes()
             $lmMask = for ($i = 0; $i -lt 4; $i++) { $bits = [math]::Max(0, [math]::Min(8, $LiveMigrationPrefix - $i * 8)); [byte](256 - [math]::Pow(2, (8 - $bits))) }
             $lmNet = for ($i = 0; $i -lt 4; $i++) { $lmBytes[$i] -band $lmMask[$i] }
-            Set-VMHost -VirtualMachineMigrationNetwork ($lmNet -join '.') -ErrorAction Stop
+            $lmSubnet = "$($lmNet -join '.')/$LiveMigrationPrefix"
+            $existingMigNets = @(Get-VMMigrationNetwork -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Subnet)
+            if ($existingMigNets -notcontains $lmSubnet) {
+                Add-VMMigrationNetwork -Subnet $lmSubnet -ErrorAction Stop
+            }
         } else {
             Write-Warning "No -LiveMigrationIP: LiveMig NIC stays unbound; migration traffic may use other networks."
         }

@@ -14,7 +14,7 @@ BeforeAll {
         'Set-NetQosDcbxSetting', 'Get-NetAdapterQos', 'Enable-NetAdapterQos',
         'Get-NetAdapterRdma', 'Enable-NetAdapterRdma', 'Get-NetAdapterVmq', 'Disable-NetAdapterVmq',
         'Get-NetAdapterRsc', 'Disable-NetAdapterRsc', 'Get-VMSwitch', 'New-VMSwitch',
-        'Set-VMSwitch', 'Set-VMHost'
+        'Set-VMSwitch', 'Set-VMHost', 'Get-VMMigrationNetwork', 'Add-VMMigrationNetwork'
     )
     foreach ($e in $externals) {
         if (-not (Get-Command $e -ErrorAction SilentlyContinue)) {
@@ -78,6 +78,8 @@ BeforeAll {
     Mock -ModuleName Deploy-S2D New-VMSwitch -MockWith {}
     Mock -ModuleName Deploy-S2D Set-VMSwitch -MockWith {}
     Mock -ModuleName Deploy-S2D Set-VMHost -MockWith {}
+    Mock -ModuleName Deploy-S2D Get-VMMigrationNetwork -MockWith {}
+    Mock -ModuleName Deploy-S2D Add-VMMigrationNetwork -MockWith {}
 }
 
 Describe 'Start-S2DNodePrep with existing vSwitch (mocked)' {
@@ -87,7 +89,9 @@ Describe 'Start-S2DNodePrep with existing vSwitch (mocked)' {
                 -LiveMigrationIP '10.0.2.1' -Confirm:$false } | Should -Not -Throw
         Should -Invoke -ModuleName Deploy-S2D -CommandName Rename-NetAdapter -Times 7 -Exactly
         Should -Invoke -ModuleName Deploy-S2D -CommandName New-NetIPAddress -Times 3 -Exactly
-        Should -Invoke -ModuleName Deploy-S2D -CommandName Set-VMHost -Times 2 -Exactly
+        Should -Invoke -ModuleName Deploy-S2D -CommandName Set-VMHost -Times 1 -Exactly
+        Should -Invoke -ModuleName Deploy-S2D -CommandName Add-VMMigrationNetwork -Times 1 -Exactly `
+            -ParameterFilter { $Subnet -eq '10.0.2.0/24' }
         Should -Invoke -ModuleName Deploy-S2D -CommandName New-VMSwitch -Times 0 -Exactly
         Should -Invoke -ModuleName Deploy-S2D -CommandName Set-VMSwitch -Times 1 -Exactly
     }
