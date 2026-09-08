@@ -1,5 +1,7 @@
 # S2DCluster — Usage Guide
 
+> Version française : [README_FR.md](README_FR.md).
+
 Deploys a 2-node Storage Spaces Direct (S2D) cluster on Windows Server 2025:
 per-node network/storage prep, then one-shot cluster creation with quorum,
 S2D enablement, and a mirrored CSV volume. PowerShell 5.1, FR/EN locales.
@@ -129,3 +131,16 @@ Get-PhysicalDisk -UniqueId <id> | Clear-PhysicalDiskHealthData -Intent -Force
   design; no environment defaults in shared code (engine prompts instead);
   every destructive path supports `-WhatIf`; resume happens exactly once,
   after resync.
+
+## Testing & lint (end of checklist)
+
+```powershell
+Import-Module .\Deploy-S2D\Deploy-S2D.psm1 -Force
+Invoke-ScriptAnalyzer -Path . -Recurse -Settings ./PSScriptAnalyzerSettings.psd1
+Invoke-Pester -Path ./Tests -Output Detailed
+```
+
+Analyzer must report zero `Error`s (warnings print for info; `Write-Host` is
+excluded by design — console output is the deploy UX). Pester runs 15 tests:
+manifest, parameter contracts, boundary throws, two mocked NodePrep runs.
+GitHub Actions runs both on every push/PR (`windows-latest`, PowerShell 5.1).
