@@ -3,6 +3,25 @@
 BeforeAll {
     Import-Module "$PSScriptRoot/../../Deploy-S2D.psm1" -Force
 
+    # The runner image lacks some role cmdlets (Hyper-V, DCB). Define global
+    # stubs for anything missing so Mock -ModuleName can attach; mocks replace
+    # them entirely, so no real host is ever touched.
+    $externals = @(
+        'Add-Content', 'Get-NetAdapter', 'Get-CimInstance', 'Get-SmbClientNetworkInterface',
+        'Rename-NetAdapter', 'Set-NetAdapterAdvancedProperty', 'Set-NetIPInterface',
+        'Remove-NetIPAddress', 'New-NetIPAddress', 'Remove-NetQosPolicy', 'Get-NetQosPolicy',
+        'New-NetQosPolicy', 'Enable-NetQosFlowControl', 'Disable-NetQosFlowControl',
+        'Set-NetQosDcbxSetting', 'Get-NetAdapterQos', 'Enable-NetAdapterQos',
+        'Get-NetAdapterRdma', 'Enable-NetAdapterRdma', 'Get-NetAdapterVmq', 'Disable-NetAdapterVmq',
+        'Get-NetAdapterRsc', 'Disable-NetAdapterRsc', 'Get-VMSwitch', 'New-VMSwitch',
+        'Set-VMSwitch', 'Set-VMHost'
+    )
+    foreach ($e in $externals) {
+        if (-not (Get-Command $e -ErrorAction SilentlyContinue)) {
+            New-Item -Path "function:Global:$e" -Value {} -Force | Out-Null
+        }
+    }
+
     Mock -ModuleName Deploy-S2D Add-Content -MockWith {}
     Mock -ModuleName Deploy-S2D Get-NetAdapter -MockWith {
         if ($PSBoundParameters.ContainsKey('Name')) {
