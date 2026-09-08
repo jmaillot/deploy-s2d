@@ -1,11 +1,11 @@
 # Project: S2DCluster
 
-Windows PowerShell 5.1, S2D on Windows Server 2025 (FR-FR locale). No tests, no CI.
-Layout: `Deploy-S2D.psd1/.psm1` is the module (loader dot-sources `Private/` then
-`Public/`, one function per file, explicit `FunctionsToExport`). `Private/Write-S2DLog.ps1`
-owns logging (`Write-S2DLog`; the `Write-Log` name collides with a PS Core built-in). Public: `Start-S2DNodePrep` (per-node), `New-S2DCluster` (once),
-`Start-S2DDeployment` (back-compat wrapper). `Invoke-*.ps1` / `New-*.ps1` are thin
-forwarders (`Import-Module` + splat). Legacy files live in `archive/`.
+Windows PowerShell 5.1, S2D on Windows Server 2025 (FR-FR locale). Pester 5 unit tests + GitHub Actions CI.
+Layout: `Deploy-S2D/` is the shippable module (loader `.psm1` dot-sources
+`Private/` then `Public/`, one function per file, explicit `FunctionsToExport`,
+`en-US/` about help). `Scripts/` holds thin forwarders (`Import-Module` + splat),
+the reboot runbook, canned examples, and the vendored helper. Legacy files live
+in `archive/`.
 
 ## Commands
 - Syntax check (Windows): `pwsh -NoProfile -Command "[void][System.Management.Automation.PSParser]::Tokenize((Get-Content -Raw '<file>'), [ref]$null)"`
@@ -57,6 +57,6 @@ forwarders (`Import-Module` + splat). Legacy files live in `archive/`.
 
 ## Boundaries
 - Never `Set-ExecutionPolicy Unrestricted`; use `RemoteSigned` + signed module.
-- Don't touch `archive/` or `Clear-PhysicalDiskHealthData.ps1` (vendored) without explicit approval.
+- Don't touch `archive/` or `Scripts/Clear-PhysicalDiskHealthData.ps1` (vendored) without explicit approval.
 - Keep standalone scripts thin — logic goes in the `.psm1`, not duplicated in `.ps1`.
 - Verify with the repo's own checks (parser + ScriptAnalyzer) before declaring done.

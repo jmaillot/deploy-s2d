@@ -1,10 +1,10 @@
 BeforeAll {
-    Import-Module "$PSScriptRoot/../../Deploy-S2D.psm1" -Force
+    Import-Module "$PSScriptRoot/../../Deploy-S2D/Deploy-S2D.psm1" -Force
 }
 
 Describe 'Deploy-S2D module' {
     It 'has a valid manifest' {
-        { Test-ModuleManifest "$PSScriptRoot/../../Deploy-S2D.psd1" -ErrorAction Stop } | Should -Not -Throw
+        { Test-ModuleManifest "$PSScriptRoot/../../Deploy-S2D/Deploy-S2D.psd1" -ErrorAction Stop } | Should -Not -Throw
     }
 
     It 'exports exactly the three public functions' {

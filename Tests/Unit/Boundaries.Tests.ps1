@@ -1,5 +1,5 @@
 BeforeAll {
-    Import-Module "$PSScriptRoot/../../Deploy-S2D.psm1" -Force
+    Import-Module "$PSScriptRoot/../../Deploy-S2D/Deploy-S2D.psm1" -Force
 }
 
 Describe 'New-S2DCluster boundaries' {

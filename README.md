@@ -18,8 +18,8 @@ disk-health repair helper. PowerShell 5.1, FR/EN locales supported.
 ## Order of operations
 
 ```
-1. Copy the folder to EACH node, run Invoke-S2DNodePrep.ps1 locally on each
-2. From ONE node, run New-S2DCluster.ps1 once
+1. Copy the folder to EACH node, run Scripts/Invoke-S2DNodePrep.ps1 locally on each
+2. From ONE node, run Scripts/New-S2DCluster.ps1 once
 3. Validate: Get-VirtualDisk / Get-StorageJob / Failover Cluster Manager
 ```
 
@@ -28,7 +28,7 @@ it renames the *local* NICs.
 
 ## Scripts
 
-### 1. `Invoke-S2DNodePrep.ps1` — per node, run locally on each
+### 1. `Scripts/Invoke-S2DNodePrep.ps1` — per node, run locally on each
 
 Preflight first: `StorageA/B` and `LiveMig` must be **10 Gbps+ and RDMA-capable** —
 anything slower (e.g. 1G) or non-RDMA throws before anything is changed. Then it
@@ -37,7 +37,7 @@ storage IPs, QoS/DCB + RDMA, builds `vSwitch-VM` (SET team for 2+ VM NICs, plain
 vSwitch for 1), disables VMQ/RSC, sets live migration to SMB.
 
 ```powershell
-.\Invoke-S2DNodePrep.ps1 -MgmtAdapters "Mgmt01","Mgmt02" -VMAdapters "Vm01","Vm02" `
+.\Scripts\Invoke-S2DNodePrep.ps1 -MgmtAdapters "Mgmt01","Mgmt02" -VMAdapters "Vm01","Vm02" `
   -StorageA "Storage01" -StorageB "Storage02" -LiveMigrationAdapter "Live01" `
   -StorageAIP "192.168.200.1" -StorageBIP "192.168.201.1"
 ```
@@ -68,14 +68,14 @@ means none. `Q` aborts. Console-native (works on Server Core, help stays
 visible) — no popup. Example with only Mgmt/VM omitted: 2 menus appear, the
 rest use your values.
 
-### 2. `New-S2DCluster.ps1` — once, from one node
+### 2. `Scripts/New-S2DCluster.ps1` — once, from one node
 
 Validates (`Test-Cluster`, FR-first/EN-fallback), creates the cluster, sets quorum,
 enables S2D, creates the mirrored CSV (ReFS), constrains SMB Multichannel to
 StorageA/B, renames cluster networks.
 
 ```powershell
-.\New-S2DCluster.ps1 -ClusterName "ClusterPDL" -ClusterNodes "HV1","HV2" `
+.\Scripts\New-S2DCluster.ps1 -ClusterName "ClusterPDL" -ClusterNodes "HV1","HV2" `
   -ClusterIP "192.168.1.240" -WitnessType "FileShare" `
   -FileShareWitness "\\NTSVR22.intra-pdl.fr\ClusterPDL$" `
   -VolumeName "CSV_S2D" -SizingMode "Auto"
@@ -89,15 +89,15 @@ StorageA/B, renames cluster networks.
 | `AzStorageAccount/Key` | Cloud only | Throw if missing. Key is `SecureString` — never plaintext: `$key = Read-Host -AsSecureString`, then `-AzStorageKey $key`. Decrypted only for the quorum call, cleared after, never logged |
 | `SizingMode` | no | `Auto` (default, keeps `CapacityReservePercent`, default 20%; `-UseFullPool` skips reserve) or `Fixed` (requires `-VolumeSize`, e.g. `2TB`) |
 
-### 3. `Reboot-S2D.ps1` — safe reboot of one node
+### 3. `Scripts/Reboot-S2D.ps1` — safe reboot of one node
 
 Guided 10-step runbook: health check → drain → storage maintenance → reboot →
 exit maintenance → resync wait (timeout, default 120 min) → resume with failback.
 Run from a *different* node; resumes at step 7 if the node already rebooted.
 
 ```powershell
-.\Reboot-S2D.ps1 -NodeName "HV1"                     # interactive
-.\Reboot-S2D.ps1 -NodeName "HV1" -Force -WhatIf      # dry-run, no prompts
+.\Scripts\Reboot-S2D.ps1 -NodeName "HV1"                     # interactive
+.\Scripts\Reboot-S2D.ps1 -NodeName "HV1" -Force -WhatIf      # dry-run, no prompts
 ```
 
 ### 4. `Clear-PhysicalDiskHealthData.ps1` — vendored, use as-is
@@ -111,11 +111,12 @@ Get-PhysicalDisk -UniqueId <id> | Clear-PhysicalDiskHealthData -Intent -Force
 
 ### Module + canned examples
 
-- `Deploy-S2D.psd1/.psm1` (v1.3.0): `Start-S2DNodePrep`, `New-S2DCluster`,
-  `Start-S2DDeployment` (back-compat wrapper). `Public/` = one function per file,
-  `Private/Write-S2DLog.ps1` = logging.
-- `DeployCmd-1-NodePrep.ps1` / `DeployCmd-2-Cluster.ps1`: copy-paste examples
-  with lab values. `archive/` holds retired files.
+- `Deploy-S2D/` is the shippable module (`Deploy-S2D.psd1/.psm1` v1.6.0,
+  `Public/` = one function per file, `Private/` = helpers, `en-US/` = about help):
+  `Start-S2DNodePrep`, `New-S2DCluster`, `Start-S2DDeployment` (back-compat wrapper).
+- `Scripts/` holds the thin forwarders, the reboot runbook, the canned
+  `DeployCmd-*` examples, and the vendored disk-health helper.
+  `archive/` holds retired files.
 
 ## Testing
 

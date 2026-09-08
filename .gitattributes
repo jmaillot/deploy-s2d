@@ -1,0 +1,5 @@
+# PowerShell sources: CRLF line endings; UTF-8 BOM required on files with
+# non-ASCII content (French strings break on Windows PowerShell 5.1 without it).
+*.ps1 text eol=crlf
+*.psm1 text eol=crlf
+*.psd1 text eol=crlf

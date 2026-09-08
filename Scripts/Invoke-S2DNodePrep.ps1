@@ -20,7 +20,7 @@ param(
     [int]$LiveMigrationPrefix = 24,
     [string]$LogPath = "C:\S2D_Deployment.log"
 )
-Import-Module "$PSScriptRoot\Deploy-S2D.psm1" -Force
+Import-Module "$PSScriptRoot\..\Deploy-S2D\Deploy-S2D.psm1" -Force
 $forward = @{}
 foreach ($k in @('MgmtAdapters','VMAdapters','StorageA','StorageB','LiveMigrationAdapter','StorageAIP','StorageBIP','StoragePrefix','LiveMigrationIP','LiveMigrationPrefix','LogPath')) {
     if ($PSBoundParameters.ContainsKey($k)) { $forward[$k] = $PSBoundParameters[$k] }

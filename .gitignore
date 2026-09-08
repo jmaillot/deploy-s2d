@@ -1,0 +1,11 @@
+# Pester CI artifacts
+testResults.xml
+TestResults/
+
+# Local deploy logs
+S2D_Deployment.log
+*.log
+
+# Windows noise
+Thumbs.db
+Desktop.ini

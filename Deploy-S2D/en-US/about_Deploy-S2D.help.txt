@@ -1,0 +1,33 @@
+TOPIC
+    about_Deploy-S2D
+
+SHORT DESCRIPTION
+    Two-phase Storage Spaces Direct deployment for two Windows Server nodes.
+
+LONG DESCRIPTION
+    The Deploy-S2D module deploys a Storage Spaces Direct (S2D) cluster in two
+    phases with different blast radiuses, which is why they are separate commands:
+
+    Phase 1 - Start-S2DNodePrep (run LOCALLY on EACH node, elevated):
+        Validates hardware (4+ physical NICs, 10 Gbps + RDMA on storage and
+        LiveMig, poolable disks), renames NICs, sets jumbo MTU and static
+        storage IPs, configures QoS/DCB and RDMA, builds the vSwitch, disables
+        VMQ/RSC on team members, binds the live migration network.
+
+    Phase 2 - New-S2DCluster (run ONCE from one node):
+        Validates, creates the cluster, sets quorum, enables S2D, creates the
+        mirrored CSV volume, constrains SMB Multichannel, renames networks.
+
+    Start-S2DDeployment is a back-compat wrapper around both. Prefer the phase
+    functions. Thin entry scripts live in Scripts/ (Invoke-S2DNodePrep.ps1,
+    New-S2DCluster.ps1); the safe-reboot runbook is Scripts/Reboot-S2D.ps1.
+
+EXAMPLES
+    PS> Start-S2DNodePrep -StorageAIP 192.168.200.1 -StorageBIP 192.168.201.1 -WhatIf
+    PS> New-S2DCluster -ClusterName CL -ClusterNodes HV1,HV2 -ClusterIP 192.168.1.240 -WhatIf
+
+SEE ALSO
+    Start-S2DNodePrep
+    New-S2DCluster
+    Start-S2DDeployment
+    about_ShouldProcess

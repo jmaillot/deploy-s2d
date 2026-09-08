@@ -1,7 +1,7 @@
 # Start-S2DNodePrep with every external cmdlet mocked (static returns only).
 # Two scopes: existing vSwitch (pipe path) and missing vSwitch (creation path).
 BeforeAll {
-    Import-Module "$PSScriptRoot/../../Deploy-S2D.psm1" -Force
+    Import-Module "$PSScriptRoot/../../Deploy-S2D/Deploy-S2D.psm1" -Force
 
     # The runner image lacks some role cmdlets (Hyper-V, DCB). Define global
     # stubs for anything missing so Mock -ModuleName can attach; mocks replace

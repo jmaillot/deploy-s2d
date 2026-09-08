@@ -25,7 +25,7 @@ param(
     [switch]$UseFullPool,
     [string]$LogPath = "C:\S2D_Deployment.log"
 )
-Import-Module "$PSScriptRoot\Deploy-S2D.psm1" -Force
+Import-Module "$PSScriptRoot\..\Deploy-S2D\Deploy-S2D.psm1" -Force
 $params = @{
     ClusterName = $ClusterName; ClusterNodes = $ClusterNodes; ClusterIP = $ClusterIP
     WitnessType = $WitnessType; VolumeName = $VolumeName; SizingMode = $SizingMode

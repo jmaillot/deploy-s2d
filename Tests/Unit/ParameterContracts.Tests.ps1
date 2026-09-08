@@ -1,5 +1,5 @@
 BeforeAll {
-    Import-Module "$PSScriptRoot/../../Deploy-S2D.psm1" -Force
+    Import-Module "$PSScriptRoot/../../Deploy-S2D/Deploy-S2D.psm1" -Force
 }
 
 Describe 'Parameter contracts' {
@@ -25,7 +25,7 @@ Describe 'Parameter contracts' {
     }
 
     It 'shared code has no environment defaults' {
-        $src = Get-Content "$PSScriptRoot/../../Public/*.ps1" -Raw
+        $src = Get-Content "$PSScriptRoot/../../Deploy-S2D/Public/*.ps1" -Raw
         $src | Should -Not -Match '@\("Ethernet'
         $src | Should -Not -Match '="Ethernet'
         $src | Should -Not -Match '"CLUSTERS2D"'
