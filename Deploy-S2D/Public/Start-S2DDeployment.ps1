@@ -55,7 +55,7 @@ Log file path. Default C:\S2D_Deployment.log.
 .PARAMETER RunPhase
 NodePrep (run on each node) or Cluster (run once).
 .EXAMPLE
-Start-S2DDeployment -ClusterName "CL-S2D" -ClusterNodes "S2D-01","S2D-02" -ClusterIP "192.168.1.200" -MgmtAdapters "Ethernet 1" -VMAdapters "Ethernet 3","Ethernet 4" -StorageA "Ethernet 5" -StorageB "Ethernet 6" -LiveMigrationAdapter "Ethernet 7" -StorageAIP "10.10.10.1" -StorageBIP "10.10.20.1" -WitnessType "FileShare" -FileShareWitness "\\FS01\ClusterWitness$" -VolumeName "CSV_S2D" -SizingMode "Auto" -RunPhase "NodePrep"
+Start-S2DDeployment -ClusterName "CL-S2D" -ClusterNodes "S2D-01","S2D-02" -ClusterIP "192.168.1.200" -MgmtAdapters "Ethernet 1" -VMAdapters "Ethernet 3","Ethernet 4" -StorageA "Ethernet 5" -StorageB "Ethernet 6" -LiveMigrationAdapter "Ethernet 7" -StorageAIP "10.10.10.1" -StorageBIP "10.10.20.1" -WitnessType "FileShare" -FileShareWitness "\\FILESERVER\Witness$" -VolumeName "CSV_S2D" -SizingMode "Auto" -RunPhase "NodePrep"
 #>
     [CmdletBinding(SupportsShouldProcess = $true)]
     [OutputType()]
