@@ -18,8 +18,10 @@ jobs:
       - name: Lint (errors fail the build)
         shell: powershell
         run: |
-          $errors = Invoke-ScriptAnalyzer -Path . -Recurse -Settings ./PSScriptAnalyzerSettings.psd1 -Severity Error
-          if ($errors) { $errors | Format-Table -AutoSize; exit 1 }
+          $findings = Invoke-ScriptAnalyzer -Path . -Recurse -Settings ./PSScriptAnalyzerSettings.psd1
+          $findings | Format-Table -AutoSize
+          $errors = $findings | Where-Object { $_.Severity -eq 'Error' }
+          if ($errors) { exit 1 }
           Write-Host 'Analyzer: 0 errors.'
 
       - name: Pester
