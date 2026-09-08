@@ -10,6 +10,7 @@ forwarders (`Import-Module` + splat). Legacy files live in `archive/`.
 ## Commands
 - Syntax check (Windows): `pwsh -NoProfile -Command "[void][System.Management.Automation.PSParser]::Tokenize((Get-Content -Raw '<file>'), [ref]$null)"`
 - Lint: `Invoke-ScriptAnalyzer -Path . -Recurse -Settings .\PSScriptAnalyzerSettings.psd1` (fix all Errors before merge; scope scans to active code, not `archive/`)
+- Test: `Invoke-Pester -Path ./Tests` (Pester 5; CI runs this + analyzer errors on push/PR)
 - Dry run: every destructive script must support `-WhatIf`; verify with `-WhatIf` first
 - Encoding: save `.ps1`/`.psm1`/`.psd1` with UTF-8 BOM whenever they contain non-ASCII
   (French strings like `Réseau` silently garble on Windows PowerShell 5.1 without it)

@@ -117,6 +117,17 @@ Get-PhysicalDisk -UniqueId <id> | Clear-PhysicalDiskHealthData -Intent -Force
 - `DeployCmd-1-NodePrep.ps1` / `DeployCmd-2-Cluster.ps1`: copy-paste examples
   with lab values. `archive/` holds retired files.
 
+## Testing
+
+Pester 5 unit tests live in `Tests/` (manifest, parameter contracts, boundary
+throws, one fully-mocked NodePrep run). GitHub Actions (`.github/workflows/ci.yml`,
+`windows-latest`, PowerShell 5.1) runs analyzer errors + Pester on push/PR.
+
+```powershell
+Invoke-ScriptAnalyzer -Path . -Recurse -Settings ./PSScriptAnalyzerSettings.psd1 -Severity Error
+Invoke-Pester -Path ./Tests -Output Detailed
+```
+
 ## Design notes (why)
 
 - **Storage takes exactly 2 adapters by design** — one NIC renamed to StorageA,

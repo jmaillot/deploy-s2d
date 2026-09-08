@@ -1,0 +1,28 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  lint-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Pester + PSScriptAnalyzer
+        shell: powershell
+        run: |
+          Set-PSRepository PSGallery -InstallationPolicy Trusted
+          Install-Module Pester -MinimumVersion 5.0 -Force -SkipPublisherCheck
+          Install-Module PSScriptAnalyzer -Force
+
+      - name: Lint (errors fail the build)
+        shell: powershell
+        run: |
+          $errors = Invoke-ScriptAnalyzer -Path . -Recurse -Settings ./PSScriptAnalyzerSettings.psd1 -Severity Error
+          if ($errors) { $errors | Format-Table -AutoSize; exit 1 }
+          Write-Host 'Analyzer: 0 errors.'
+
+      - name: Pester
+        shell: powershell
+        run: |
+          Invoke-Pester -Path ./Tests -Output Detailed -CI

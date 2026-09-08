@@ -1,0 +1,41 @@
+BeforeAll {
+    Import-Module "$PSScriptRoot/../../Deploy-S2D.psm1" -Force
+    $nodeParams = @{
+        MgmtAdapters          = 'M1'
+        VMAdapters            = 'V1'
+        StorageA              = 'S1'
+        StorageB              = 'S2'
+        LiveMigrationAdapter  = 'L1'
+    }
+}
+
+Describe 'New-S2DCluster boundaries' {
+    It 'throws when FileShare witness is missing' {
+        { New-S2DCluster -ClusterName X -ClusterNodes Y,Z -ClusterIP 192.168.1.240 -ErrorAction Stop } |
+            Should -Throw '*FileShareWitness*'
+    }
+
+    It 'throws when Cloud credentials are missing' {
+        { New-S2DCluster -ClusterName X -ClusterNodes Y,Z -ClusterIP 192.168.1.240 `
+                -WitnessType Cloud -AzStorageAccount 'acc' -ErrorAction Stop } |
+            Should -Throw '*AzStorageKey*'
+    }
+}
+
+Describe 'Start-S2DNodePrep boundaries' {
+    It 'throws when storage IPs are identical' {
+        { Start-S2DNodePrep @nodeParams -StorageAIP 10.0.0.1 -StorageBIP 10.0.0.1 -ErrorAction Stop } |
+            Should -Throw '*must differ*'
+    }
+
+    It 'throws when storage IPs share a subnet' {
+        { Start-S2DNodePrep @nodeParams -StorageAIP 10.0.0.1 -StorageBIP 10.0.0.2 -ErrorAction Stop } |
+            Should -Throw '*different subnets*'
+    }
+
+    It 'throws when LiveMigrationIP equals a storage IP' {
+        { Start-S2DNodePrep @nodeParams -StorageAIP 10.0.0.1 -StorageBIP 10.0.1.1 `
+                -LiveMigrationIP 10.0.0.1 -ErrorAction Stop } |
+            Should -Throw '*must differ from both storage IPs*'
+    }
+}
