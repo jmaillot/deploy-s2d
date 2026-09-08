@@ -14,7 +14,8 @@ BeforeAll {
         'Set-NetQosDcbxSetting', 'Get-NetAdapterQos', 'Enable-NetAdapterQos',
         'Get-NetAdapterRdma', 'Enable-NetAdapterRdma', 'Get-NetAdapterVmq', 'Disable-NetAdapterVmq',
         'Get-NetAdapterRsc', 'Disable-NetAdapterRsc', 'Get-VMSwitch', 'New-VMSwitch',
-        'Set-VMSwitch', 'Set-VMHost', 'Get-VMMigrationNetwork', 'Add-VMMigrationNetwork'
+        'Set-VMSwitch', 'Set-VMHost', 'Get-VMMigrationNetwork', 'Add-VMMigrationNetwork',
+        'Set-DnsClient'
     )
     foreach ($e in $externals) {
         if (-not (Get-Command $e -ErrorAction SilentlyContinue)) {
@@ -57,6 +58,9 @@ BeforeAll {
     }
     Mock -ModuleName Deploy-S2D Rename-NetAdapter -MockWith {}
     Mock -ModuleName Deploy-S2D Set-NetAdapterAdvancedProperty -MockWith {}
+    Mock -ModuleName Deploy-S2D Get-NetAdapterAdvancedProperty -MockWith {
+        [pscustomobject]@{ DisplayName = 'Jumbo Packet'; RegistryKeyword = '*JumboPacket'; RegistryValue = 9014 }
+    }
     Mock -ModuleName Deploy-S2D Set-NetIPInterface -MockWith {}
     Mock -ModuleName Deploy-S2D Remove-NetIPAddress -MockWith {}
     Mock -ModuleName Deploy-S2D New-NetIPAddress -MockWith {}
@@ -77,6 +81,7 @@ BeforeAll {
     Mock -ModuleName Deploy-S2D Get-VMSwitch -MockWith { [pscustomobject]@{ Name = 'vSwitch-VM' } }
     Mock -ModuleName Deploy-S2D New-VMSwitch -MockWith {}
     Mock -ModuleName Deploy-S2D Set-VMSwitch -MockWith {}
+    Mock -ModuleName Deploy-S2D Set-DnsClient -MockWith {}
     Mock -ModuleName Deploy-S2D Set-VMHost -MockWith {}
     Mock -ModuleName Deploy-S2D Get-VMMigrationNetwork -MockWith {}
     Mock -ModuleName Deploy-S2D Add-VMMigrationNetwork -MockWith {}
@@ -87,6 +92,10 @@ Describe 'Start-S2DNodePrep with existing vSwitch (mocked)' {
         { Start-S2DNodePrep -MgmtAdapters 'M1', 'M2' -VMAdapters 'V1', 'V2' -StorageA 'S1' -StorageB 'S2' -LiveMigrationAdapter 'L1' -StorageAIP '10.0.0.1' -StorageBIP '10.0.1.1' -LiveMigrationIP '10.0.2.1' -Confirm:$false } | Should -Not -Throw
         Should -Invoke -ModuleName Deploy-S2D -CommandName Rename-NetAdapter -Times 7 -Exactly
         Should -Invoke -ModuleName Deploy-S2D -CommandName New-NetIPAddress -Times 3 -Exactly
+        Should -Invoke -ModuleName Deploy-S2D -CommandName Set-DnsClient -Times 3 -Exactly
+        Should -Invoke -ModuleName Deploy-S2D -CommandName Set-NetAdapterAdvancedProperty -Times 3 -Exactly
+        Should -Invoke -ModuleName Deploy-S2D -CommandName Set-NetAdapterAdvancedProperty -Times 0 -Exactly `
+            -ParameterFilter { $Name -like 'VM*' -or $Name -like 'Mgmt*' }
         Should -Invoke -ModuleName Deploy-S2D -CommandName Set-VMHost -Times 1 -Exactly
         Should -Invoke -ModuleName Deploy-S2D -CommandName Add-VMMigrationNetwork -Times 1 -Exactly -ParameterFilter { $Subnet -eq '10.0.2.0/24' }
         Should -Invoke -ModuleName Deploy-S2D -CommandName New-VMSwitch -Times 0 -Exactly

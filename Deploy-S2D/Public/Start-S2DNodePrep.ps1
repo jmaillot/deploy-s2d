@@ -173,8 +173,16 @@ Dry run with NIC picker guiding every adapter choice.
 
     if ($PSCmdlet.ShouldProcess($(hostname), "Configure storage MTU/IP, QoS/RDMA, vSwitch, VMQ/RSC")) {
         Write-S2DLog "Storage MTU + IP - $(hostname)"
-        foreach ($st in @("StorageA","StorageB")) {
-            try { Set-NetAdapterAdvancedProperty -Name $st -RegistryKeyword "*JumboPacket" -RegistryValue 9014 -ErrorAction Stop } catch { Write-Warning "JumboPacket failed on $st - $_ . Storage fabric stays at 1500B; fix driver/switch before production." }
+        foreach ($st in @("StorageA","StorageB","LiveMig")) {
+            try { Set-NetAdapterAdvancedProperty -Name $st -RegistryKeyword "*JumboPacket" -RegistryValue 9014 -ErrorAction Stop } catch { Write-Warning "JumboPacket failed on $st - $_ . Fabric stays at 1500B; align switch/NIC MTU (Broadcom caps at 9000 on some models) before production." }
+        }
+        foreach ($st in @("StorageA","StorageB","LiveMig")) {
+            $mtuProp = Get-NetAdapterAdvancedProperty -Name $st -ErrorAction SilentlyContinue |
+                Where-Object { $_.RegistryKeyword -eq "*JumboPacket" } |
+                Select-Object -First 1
+            if ($mtuProp -and $mtuProp.RegistryValue -ne 9014) {
+                Write-Warning "MTU read-back on $st is $($mtuProp.RegistryValue), expected 9014. VM/Mgmt intentionally left at default."
+            }
         }
 
         Set-NetIPInterface -InterfaceAlias "StorageA" -Dhcp Disabled
@@ -234,6 +242,38 @@ Dry run with NIC picker guiding every adapter choice.
         Write-S2DLog "VMQ/RSC - $(hostname)"
         Get-NetAdapterVmq -Name $RenamedVMAdapters -ErrorAction SilentlyContinue | Where-Object {$_.Enabled} | Disable-NetAdapterVmq -NoRestart
         Get-NetAdapterRsc -Name $RenamedVMAdapters -ErrorAction SilentlyContinue | Disable-NetAdapterRsc -ErrorAction SilentlyContinue
+
+        Write-S2DLog "EEE off (Mgmt) - $(hostname)"
+        foreach ($mgmt in $RenamedMgmtAdapters) {
+            $eeeProp = Get-NetAdapterAdvancedProperty -Name $mgmt -ErrorAction SilentlyContinue |
+                Where-Object { $_.DisplayName -match 'Energy Efficient|EEE|Green Ethernet|Power Sav' } |
+                Select-Object -First 1
+            if ($eeeProp) {
+                Set-NetAdapterAdvancedProperty -Name $mgmt -DisplayName $eeeProp.DisplayName -DisplayValue "Disabled" -ErrorAction SilentlyContinue | Out-Null
+            } else {
+                Write-Verbose "No EEE property on $mgmt, skipping."
+            }
+        }
+
+        Write-S2DLog "EEE off (LiveMig) - $(hostname)"
+        $eeeLive = Get-NetAdapterAdvancedProperty -Name "LiveMig" -ErrorAction SilentlyContinue |
+            Where-Object { $_.DisplayName -match 'Energy Efficient|EEE|Green Ethernet|Power Sav' } |
+            Select-Object -First 1
+        if ($eeeLive) {
+            Set-NetAdapterAdvancedProperty -Name "LiveMig" -DisplayName $eeeLive.DisplayName -DisplayValue "Disabled" -ErrorAction SilentlyContinue | Out-Null
+        } else {
+            Write-Verbose "No EEE property on LiveMig, skipping."
+        }
+
+        Write-S2DLog "DNS/NetBIOS off (Storage+LiveMig) - $(hostname)"
+        foreach ($nn in @("StorageA","StorageB","LiveMig")) {
+            Set-DnsClient -InterfaceAlias $nn -RegisterThisConnectionsAddress $false -ErrorAction SilentlyContinue
+            $idx = (Get-NetAdapter -Name $nn -ErrorAction SilentlyContinue).InterfaceIndex
+            if ($idx) {
+                $cfg = Get-CimInstance Win32_NetworkAdapterConfiguration -Filter "InterfaceIndex = $idx" -ErrorAction SilentlyContinue
+                if ($cfg) { Invoke-CimMethod -InputObject $cfg -MethodName SetTcpipNetbios -Arguments @{TcpipNetbiosOptions = [uint32]2} | Out-Null }
+            }
+        }
         # No vSwitch-level RSC toggle: Set-VMSwitch has no such parameter (WS2025
         # reference). Physical RSC is already off on every team member above.
 
