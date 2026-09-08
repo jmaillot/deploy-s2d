@@ -14,7 +14,7 @@ Cluster creation + S2D. Run ONCE from one node.
         [ValidateSet("Cloud","FileShare")]
         [string]$WitnessType = "FileShare",
         [string]$AzStorageAccount = "",
-        [string]$AzStorageKey     = "",
+        [SecureString]$AzStorageKey,
         [string]$FileShareWitness = "",
         [string]$VolumeName = "CSV_S2D",
         [string]$VolumeSize,
@@ -28,8 +28,8 @@ Cluster creation + S2D. Run ONCE from one node.
     if ($WitnessType -eq "FileShare" -and [string]::IsNullOrWhiteSpace($FileShareWitness)) {
         throw "WitnessType=FileShare requires -FileShareWitness (UNC path, e.g. \\FS01\Witness$)."
     }
-    if ($WitnessType -eq "Cloud" -and ([string]::IsNullOrWhiteSpace($AzStorageAccount) -or [string]::IsNullOrWhiteSpace($AzStorageKey))) {
-        throw "WitnessType=Cloud requires -AzStorageAccount and -AzStorageKey."
+    if ($WitnessType -eq "Cloud" -and ([string]::IsNullOrWhiteSpace($AzStorageAccount) -or $null -eq $AzStorageKey)) {
+        throw "WitnessType=Cloud requires -AzStorageAccount and -AzStorageKey (pass a SecureString, e.g. Read-Host -AsSecureString)."
     }
 
     $script:S2DLogPath = $LogPath
@@ -50,8 +50,14 @@ Cluster creation + S2D. Run ONCE from one node.
         }
 
         Write-S2DLog "Quorum - $ClusterName"
-        if ($WitnessType -eq "Cloud" -and $AzStorageAccount -and $AzStorageKey) {
-            Set-ClusterQuorum -CloudWitness -AccountName $AzStorageAccount -AccessKey $AzStorageKey
+        if ($WitnessType -eq "Cloud") {
+            # Decrypt only for the call, clear immediately after. Never logged.
+            $plainKey = [System.Net.NetworkCredential]::new("", $AzStorageKey).Password
+            try {
+                Set-ClusterQuorum -CloudWitness -AccountName $AzStorageAccount -AccessKey $plainKey
+            } finally {
+                $plainKey = $null
+            }
         } else {
             Set-ClusterQuorum -FileShareWitness $FileShareWitness
         }

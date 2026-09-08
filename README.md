@@ -86,7 +86,7 @@ StorageA/B, renames cluster networks.
 | `ClusterName`, `ClusterNodes`, `ClusterIP` | yes | Nodes accept any count |
 | `WitnessType` | no | `FileShare` (default) or `Cloud` |
 | `FileShareWitness` | FileShare only | UNC path; throws if missing |
-| `AzStorageAccount/Key` | Cloud only | Throw if missing |
+| `AzStorageAccount/Key` | Cloud only | Throw if missing. Key is `SecureString` — never plaintext: `$key = Read-Host -AsSecureString`, then `-AzStorageKey $key`. Decrypted only for the quorum call, cleared after, never logged |
 | `SizingMode` | no | `Auto` (default, keeps `CapacityReservePercent`, default 20%; `-UseFullPool` skips reserve) or `Fixed` (requires `-VolumeSize`, e.g. `2TB`) |
 
 ### 3. `Reboot-S2D.ps1` — safe reboot of one node

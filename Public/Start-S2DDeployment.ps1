@@ -19,7 +19,7 @@ Back-compat wrapper. Prefer Start-S2DNodePrep (per node) and New-S2DCluster (onc
         [ValidateSet("Cloud","FileShare")]
         [string]$WitnessType = "FileShare",
         [string]$AzStorageAccount = "",
-        [string]$AzStorageKey     = "",
+        [SecureString]$AzStorageKey,
         [string]$FileShareWitness = "",
         [string]$VolumeName = "CSV_S2D",
         [string]$VolumeSize,

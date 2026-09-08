@@ -15,7 +15,7 @@ param(
     [ValidateSet("Cloud","FileShare")]
     [string]$WitnessType = "FileShare",
     [string]$AzStorageAccount = "",
-    [string]$AzStorageKey = "",
+    [SecureString]$AzStorageKey,
     [string]$FileShareWitness = "",
     [string]$VolumeName = "CSV_S2D",
     [string]$VolumeSize,
