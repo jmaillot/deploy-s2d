@@ -205,7 +205,8 @@ the migration network; without it LiveMig stays unbound (warning).
         Write-S2DLog "VMQ/RSC - $(hostname)"
         Get-NetAdapterVmq -Name $RenamedVMAdapters -ErrorAction SilentlyContinue | Where-Object {$_.Enabled} | Disable-NetAdapterVmq -NoRestart
         Get-NetAdapterRsc -Name $RenamedVMAdapters -ErrorAction SilentlyContinue | Disable-NetAdapterRsc -ErrorAction SilentlyContinue
-        Get-VMSwitch -Name "vSwitch-VM" | Set-VMSwitch -EnableSoftwareRsc $false
+        # No vSwitch-level RSC toggle: Set-VMSwitch has no such parameter (WS2025
+        # reference). Physical RSC is already off on every team member above.
 
         Set-VMHost -VirtualMachineMigrationPerformanceOption SMB
     }

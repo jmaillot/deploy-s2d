@@ -93,7 +93,6 @@ Describe 'Start-S2DNodePrep with existing vSwitch (mocked)' {
         Should -Invoke -ModuleName Deploy-S2D -CommandName Add-VMMigrationNetwork -Times 1 -Exactly `
             -ParameterFilter { $Subnet -eq '10.0.2.0/24' }
         Should -Invoke -ModuleName Deploy-S2D -CommandName New-VMSwitch -Times 0 -Exactly
-        Should -Invoke -ModuleName Deploy-S2D -CommandName Set-VMSwitch -Times 1 -Exactly
     }
 }
 
