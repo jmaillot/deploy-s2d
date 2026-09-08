@@ -9,8 +9,37 @@ are picked via console menu. Two or more VM adapters create a SET team; a single
 one creates a plain vSwitch. Exactly 2 storage adapters (StorageA/B) and exactly
 1 LiveMigration adapter. Minimum 4 physical NICs. Optional -LiveMigrationIP binds
 the migration network; without it LiveMig stays unbound (warning).
+.PARAMETER MgmtAdapters
+Pre-rename management NIC names. Omit to pick from a console menu.
+.PARAMETER VMAdapters
+Pre-rename vSwitch NIC names (1+). Omit to pick from a console menu.
+.PARAMETER StorageA
+Pre-rename NIC for fabric A (exactly 1). Omit to pick.
+.PARAMETER StorageB
+Pre-rename NIC for fabric B (exactly 1). Omit to pick.
+.PARAMETER LiveMigrationAdapter
+Pre-rename NIC for live migration (exactly 1, by design). Omit to pick.
+.PARAMETER StorageAIP
+This node's StorageA IP. Must differ from StorageBIP and sit on another subnet.
+.PARAMETER StorageBIP
+This node's StorageB IP. Must differ from StorageAIP and sit on another subnet.
+.PARAMETER StoragePrefix
+Storage subnet prefix length. Default 24.
+.PARAMETER LiveMigrationIP
+Optional. LiveMig IP; when supplied the migration network is bound to its
+subnet, otherwise LiveMig stays unbound (warning).
+.PARAMETER LiveMigrationPrefix
+LiveMig subnet prefix length. Default 24.
+.PARAMETER LogPath
+Log file path. Default C:\S2D_Deployment.log.
+.EXAMPLE
+Start-S2DNodePrep -MgmtAdapters "Mgmt01","Mgmt02" -VMAdapters "Vm01","Vm02" -StorageA "Storage01" -StorageB "Storage02" -LiveMigrationAdapter "Live01" -StorageAIP "192.168.200.1" -StorageBIP "192.168.201.1"
+.EXAMPLE
+Start-S2DNodePrep -StorageAIP "192.168.200.1" -StorageBIP "192.168.201.1" -WhatIf
+Dry run with NIC picker guiding every adapter choice.
 #>
     [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
+    [OutputType()]
     param(
         # NIC names. Omit any of them to pick from a menu of local physical
         # adapters (already-picked NICs are excluded from later menus).

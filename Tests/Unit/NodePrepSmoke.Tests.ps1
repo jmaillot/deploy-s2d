@@ -84,14 +84,11 @@ BeforeAll {
 
 Describe 'Start-S2DNodePrep with existing vSwitch (mocked)' {
     It 'completes and reuses the switch' {
-        { Start-S2DNodePrep -MgmtAdapters 'M1', 'M2' -VMAdapters 'V1', 'V2' -StorageA 'S1' `
-                -StorageB 'S2' -LiveMigrationAdapter 'L1' -StorageAIP '10.0.0.1' -StorageBIP '10.0.1.1' `
-                -LiveMigrationIP '10.0.2.1' -Confirm:$false } | Should -Not -Throw
+        { Start-S2DNodePrep -MgmtAdapters 'M1', 'M2' -VMAdapters 'V1', 'V2' -StorageA 'S1' -StorageB 'S2' -LiveMigrationAdapter 'L1' -StorageAIP '10.0.0.1' -StorageBIP '10.0.1.1' -LiveMigrationIP '10.0.2.1' -Confirm:$false } | Should -Not -Throw
         Should -Invoke -ModuleName Deploy-S2D -CommandName Rename-NetAdapter -Times 7 -Exactly
         Should -Invoke -ModuleName Deploy-S2D -CommandName New-NetIPAddress -Times 3 -Exactly
         Should -Invoke -ModuleName Deploy-S2D -CommandName Set-VMHost -Times 1 -Exactly
-        Should -Invoke -ModuleName Deploy-S2D -CommandName Add-VMMigrationNetwork -Times 1 -Exactly `
-            -ParameterFilter { $Subnet -eq '10.0.2.0/24' }
+        Should -Invoke -ModuleName Deploy-S2D -CommandName Add-VMMigrationNetwork -Times 1 -Exactly -ParameterFilter { $Subnet -eq '10.0.2.0/24' }
         Should -Invoke -ModuleName Deploy-S2D -CommandName New-VMSwitch -Times 0 -Exactly
     }
 }
@@ -102,10 +99,7 @@ Describe 'Start-S2DNodePrep with missing vSwitch (mocked)' {
     }
 
     It 'creates a SET team' {
-        { Start-S2DNodePrep -MgmtAdapters 'M1', 'M2' -VMAdapters 'V1', 'V2' -StorageA 'S1' `
-                -StorageB 'S2' -LiveMigrationAdapter 'L1' -StorageAIP '10.0.0.1' -StorageBIP '10.0.1.1' `
-                -LiveMigrationIP '10.0.2.1' -Confirm:$false } | Should -Not -Throw
-        Should -Invoke -ModuleName Deploy-S2D -CommandName New-VMSwitch -Times 1 -Exactly `
-            -ParameterFilter { $EnableEmbeddedTeaming -eq $true }
+        { Start-S2DNodePrep -MgmtAdapters 'M1', 'M2' -VMAdapters 'V1', 'V2' -StorageA 'S1' -StorageB 'S2' -LiveMigrationAdapter 'L1' -StorageAIP '10.0.0.1' -StorageBIP '10.0.1.1' -LiveMigrationIP '10.0.2.1' -Confirm:$false } | Should -Not -Throw
+        Should -Invoke -ModuleName Deploy-S2D -CommandName New-VMSwitch -Times 1 -Exactly -ParameterFilter { $EnableEmbeddedTeaming -eq $true }
     }
 }

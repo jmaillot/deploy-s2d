@@ -41,6 +41,11 @@ forwarders (`Import-Module` + splat). Legacy files live in `archive/`.
   automation is unaffected.
   `-SilentlyContinue` only with a comment explaining why failure is safe.
 - No `$script:` globals for parameter passing — use function params / splatting.
+- No `Invoke-Expression`, no `$global:` scope, no positional arguments in calls.
+- No backtick line continuations — use splatting or natural line breaks.
+- Comment-based help required on every public function and script:
+  `.SYNOPSIS`, `.DESCRIPTION`, `.PARAMETER` (each parameter), `.EXAMPLE` (copy-pasteable).
+- `[OutputType()]` on all public functions.
 - Secrets (`AzStorageKey`) as `SecureString`, never `Write-Host`/`Write-Log` them.
 - FR-first, EN-fallback for locale-dependent `Test-Cluster -Include` names
   (`Espaces de stockage direct...` then `Storage Spaces Direct...`).

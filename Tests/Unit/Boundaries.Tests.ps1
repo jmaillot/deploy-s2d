@@ -9,29 +9,24 @@ Describe 'New-S2DCluster boundaries' {
     }
 
     It 'throws when Cloud credentials are missing' {
-        { New-S2DCluster -ClusterName X -ClusterNodes Y,Z -ClusterIP 192.168.1.240 `
-                -WitnessType Cloud -AzStorageAccount 'acc' -ErrorAction Stop } |
+        { New-S2DCluster -ClusterName X -ClusterNodes Y,Z -ClusterIP 192.168.1.240 -WitnessType Cloud -AzStorageAccount 'acc' -ErrorAction Stop } |
             Should -Throw '*AzStorageKey*'
     }
 }
 
 Describe 'Start-S2DNodePrep boundaries' {
     It 'throws when storage IPs are identical' {
-        { Start-S2DNodePrep -MgmtAdapters 'M1' -VMAdapters 'V1' -StorageA 'S1' -StorageB 'S2' `
-                -LiveMigrationAdapter 'L1' -StorageAIP 10.0.0.1 -StorageBIP 10.0.0.1 -ErrorAction Stop } |
+        { Start-S2DNodePrep -MgmtAdapters 'M1' -VMAdapters 'V1' -StorageA 'S1' -StorageB 'S2' -LiveMigrationAdapter 'L1' -StorageAIP 10.0.0.1 -StorageBIP 10.0.0.1 -ErrorAction Stop } |
             Should -Throw '*must differ*'
     }
 
     It 'throws when storage IPs share a subnet' {
-        { Start-S2DNodePrep -MgmtAdapters 'M1' -VMAdapters 'V1' -StorageA 'S1' -StorageB 'S2' `
-                -LiveMigrationAdapter 'L1' -StorageAIP 10.0.0.1 -StorageBIP 10.0.0.2 -ErrorAction Stop } |
+        { Start-S2DNodePrep -MgmtAdapters 'M1' -VMAdapters 'V1' -StorageA 'S1' -StorageB 'S2' -LiveMigrationAdapter 'L1' -StorageAIP 10.0.0.1 -StorageBIP 10.0.0.2 -ErrorAction Stop } |
             Should -Throw '*different subnets*'
     }
 
     It 'throws when LiveMigrationIP equals a storage IP' {
-        { Start-S2DNodePrep -MgmtAdapters 'M1' -VMAdapters 'V1' -StorageA 'S1' -StorageB 'S2' `
-                -LiveMigrationAdapter 'L1' -StorageAIP 10.0.0.1 -StorageBIP 10.0.1.1 `
-                -LiveMigrationIP 10.0.0.1 -ErrorAction Stop } |
+        { Start-S2DNodePrep -MgmtAdapters 'M1' -VMAdapters 'V1' -StorageA 'S1' -StorageB 'S2' -LiveMigrationAdapter 'L1' -StorageAIP 10.0.0.1 -StorageBIP 10.0.1.1 -LiveMigrationIP 10.0.0.1 -ErrorAction Stop } |
             Should -Throw '*must differ from both storage IPs*'
     }
 }

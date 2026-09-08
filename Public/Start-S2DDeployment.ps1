@@ -2,8 +2,63 @@ function Start-S2DDeployment {
 <#
 .SYNOPSIS
 Back-compat wrapper. Prefer Start-S2DNodePrep (per node) and New-S2DCluster (once).
+.DESCRIPTION
+Dispatches on RunPhase and forwards only explicitly bound values, so unprovided
+identity values fall through to the inner Mandatory prompts. Kept so existing
+callers keep working; new callers should use the two phase functions directly.
+.PARAMETER ClusterName
+Cluster name (Cluster phase).
+.PARAMETER ClusterNodes
+Cluster node names (Cluster phase).
+.PARAMETER ClusterIP
+Cluster static IP (Cluster phase).
+.PARAMETER MgmtAdapters
+Pre-rename management NIC names (NodePrep phase).
+.PARAMETER VMAdapters
+Pre-rename vSwitch NIC names (NodePrep phase).
+.PARAMETER StorageA
+Pre-rename NIC for fabric A (NodePrep phase).
+.PARAMETER StorageB
+Pre-rename NIC for fabric B (NodePrep phase).
+.PARAMETER LiveMigrationAdapter
+Pre-rename NIC for live migration (NodePrep phase).
+.PARAMETER StorageAIP
+This node's StorageA IP (NodePrep phase).
+.PARAMETER StorageBIP
+This node's StorageB IP (NodePrep phase).
+.PARAMETER StoragePrefix
+Storage subnet prefix length. Default 24.
+.PARAMETER WitnessType
+FileShare (default) or Cloud quorum (Cluster phase).
+.PARAMETER AzStorageAccount
+Cloud witness account name (Cluster phase, Cloud only).
+.PARAMETER AzStorageKey
+Cloud witness key as SecureString (Cluster phase, Cloud only).
+.PARAMETER FileShareWitness
+Witness UNC path (Cluster phase, FileShare only).
+.PARAMETER VolumeName
+CSV friendly name. Default CSV_S2D.
+.PARAMETER VolumeSize
+Fixed size. Required when SizingMode is Fixed.
+.PARAMETER SizingMode
+Auto (default) or Fixed.
+.PARAMETER CapacityReservePercent
+Pool percent held back in Auto mode. Default 20.
+.PARAMETER UseFullPool
+Ignore the reserve and use the whole pool.
+.PARAMETER LiveMigrationIP
+LiveMig IP (NodePrep phase). Binds the migration network when supplied.
+.PARAMETER LiveMigrationPrefix
+LiveMig subnet prefix length. Default 24.
+.PARAMETER LogPath
+Log file path. Default C:\S2D_Deployment.log.
+.PARAMETER RunPhase
+NodePrep (run on each node) or Cluster (run once).
+.EXAMPLE
+Start-S2DDeployment -ClusterName "CL-S2D" -ClusterNodes "S2D-01","S2D-02" -ClusterIP "192.168.1.200" -MgmtAdapters "Ethernet 1" -VMAdapters "Ethernet 3","Ethernet 4" -StorageA "Ethernet 5" -StorageB "Ethernet 6" -LiveMigrationAdapter "Ethernet 7" -StorageAIP "10.10.10.1" -StorageBIP "10.10.20.1" -WitnessType "FileShare" -FileShareWitness "\\FS01\ClusterWitness$" -VolumeName "CSV_S2D" -SizingMode "Auto" -RunPhase "NodePrep"
 #>
     [CmdletBinding(SupportsShouldProcess = $true)]
+    [OutputType()]
     param(
         [string]$ClusterName,
         [string[]]$ClusterNodes,

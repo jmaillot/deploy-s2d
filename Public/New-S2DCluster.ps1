@@ -2,8 +2,41 @@
 <#
 .SYNOPSIS
 Cluster creation + S2D. Run ONCE from one node.
+.DESCRIPTION
+Validates (Test-Cluster, FR-first/EN-fallback), creates the cluster, sets quorum,
+enables S2D, creates the mirrored CSV (ReFS), constrains SMB Multichannel to
+StorageA/B, renames cluster networks. Passes the Test-Cluster report through.
+.PARAMETER ClusterName
+Cluster name.
+.PARAMETER ClusterNodes
+Cluster node names (any count).
+.PARAMETER ClusterIP
+Cluster static IP.
+.PARAMETER WitnessType
+FileShare (default) or Cloud quorum.
+.PARAMETER AzStorageAccount
+Cloud witness account name (Cloud only).
+.PARAMETER AzStorageKey
+Cloud witness key as SecureString, e.g. Read-Host -AsSecureString (Cloud only).
+.PARAMETER FileShareWitness
+Witness UNC path, e.g. \\FS01\Witness$ (FileShare only).
+.PARAMETER VolumeName
+CSV friendly name. Default CSV_S2D.
+.PARAMETER VolumeSize
+Fixed size, e.g. 2TB. Required when SizingMode is Fixed.
+.PARAMETER SizingMode
+Auto (default, keeps CapacityReservePercent) or Fixed.
+.PARAMETER CapacityReservePercent
+Pool percent held back in Auto mode. Default 20.
+.PARAMETER UseFullPool
+Ignore the reserve and use the whole pool.
+.PARAMETER LogPath
+Log file path. Default C:\S2D_Deployment.log.
+.EXAMPLE
+New-S2DCluster -ClusterName "ClusterPDL" -ClusterNodes "HV1","HV2" -ClusterIP "192.168.1.240" -WitnessType "FileShare" -FileShareWitness "\\NTSVR22\ClusterPDL$" -VolumeName "CSV_S2D" -SizingMode "Auto"
 #>
     [CmdletBinding(SupportsShouldProcess = $true)]
+    [OutputType([System.Object])]
     param(
         [Parameter(Mandatory = $true)]
         [string]$ClusterName,
