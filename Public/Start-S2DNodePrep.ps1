@@ -182,7 +182,7 @@ the migration network; without it LiveMig stays unbound (warning).
             Set-NetQosDcbxSetting -InterfaceAlias $iface -Willing $false -Confirm:$false
             $qos = Get-NetAdapterQos -Name $iface -ErrorAction SilentlyContinue
             if ($qos) { $qos | Enable-NetAdapterQos } else { Write-Warning "QoS/DCB unsupported on $iface; RDMA may underperform." }
-            Get-NetAdapterRdma -Name $iface -ErrorAction SilentlyContinue | Enable-NetAdapterRdma
+            Enable-NetAdapterRdma -Name $iface -ErrorAction Stop | Out-Null
         }
         foreach ($iface in @("StorageA","StorageB","LiveMig")) {
             $rdmaState = Get-NetAdapterRdma -Name $iface -ErrorAction SilentlyContinue
