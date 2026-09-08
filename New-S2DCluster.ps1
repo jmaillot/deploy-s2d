@@ -5,14 +5,17 @@ Run ONCE from one node after NodePrep completed on all nodes.
 .\New-S2DCluster.ps1 -ClusterName "ClusterPDL" -ClusterNodes "HV1","HV2" -ClusterIP "192.168.1.240" -WitnessType "FileShare" -FileShareWitness "\\NTSVR22.intra-pdl.fr\ClusterPDL$" -VolumeName "CSV_S2D" -SizingMode "Auto"
 #>
 param(
-    [string]$ClusterName = "CLUSTERS2D",
-    [string[]]$ClusterNodes = @("HV1","HV2"),
-    [string]$ClusterIP = "192.168.1.240",
+    [Parameter(Mandatory = $true)]
+    [string]$ClusterName,
+    [Parameter(Mandatory = $true)]
+    [string[]]$ClusterNodes,
+    [Parameter(Mandatory = $true)]
+    [string]$ClusterIP,
     [ValidateSet("Cloud","FileShare")]
     [string]$WitnessType = "FileShare",
     [string]$AzStorageAccount = "",
     [string]$AzStorageKey = "",
-    [string]$FileShareWitness = "\\FS01\ClusterWitness$",
+    [string]$FileShareWitness = "",
     [string]$VolumeName = "CSV_S2D",
     [string]$VolumeSize,
     [ValidateSet("Auto","Fixed")]

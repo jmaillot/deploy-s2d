@@ -23,7 +23,19 @@ forwarders (`Import-Module` + splat). Legacy files live in `archive/`.
   guard with `if ($PSCmdlet.ShouldProcess(...))`. No bare `exit` in library code — `throw`.
 - No aliases in committed code (`?`, `%`, `select` banned); full cmdlet names only.
 - ASCII hyphens only for parameters. Never paste en/em dashes (`–`, `—` break parsing).
+- Display text inside functions must use `Write-Host`/`Write-Verbose`, never bare
+  strings — bare output is captured into the caller's assignment (it once
+  silently joined a return value instead of displaying).
 - Explicit `-ErrorAction Stop` on load-bearing lookups (`Get-StoragePool`, `Get-Cluster`);
+- No environment-specific defaults in shared code (`HV1`, `Ethernet N`, lab UNC paths).
+  Identity values (names, IPs, cluster) are `[Parameter(Mandatory)]` with no default —
+  the engine prompts when missing, which also keeps automation safe. Only technical
+  tuning keeps defaults (`StoragePrefix 24`, reserve `20%`). Conditionally required
+  values get boundary `throw`s. Exception: NIC discovery in `Start-S2DNodePrep` may
+  prompt via console `Select-S2DNic` (numbered menu with help text, reprompts on
+  invalid input, `Q` aborts, non-interactive throws) — allowed because NIC names
+  are discoverable local state, and supplied values skip the picker entirely so
+  automation is unaffected.
   `-SilentlyContinue` only with a comment explaining why failure is safe.
 - No `$script:` globals for parameter passing — use function params / splatting.
 - Secrets (`AzStorageKey`) as `SecureString`, never `Write-Host`/`Write-Log` them.

@@ -5,14 +5,17 @@ Cluster creation + S2D. Run ONCE from one node.
 #>
     [CmdletBinding(SupportsShouldProcess = $true)]
     param(
-        [string]$ClusterName = "CLUSTERS2D",
-        [string[]]$ClusterNodes = @("HV1","HV2"),
-        [string]$ClusterIP = "192.168.1.240",
+        [Parameter(Mandatory = $true)]
+        [string]$ClusterName,
+        [Parameter(Mandatory = $true)]
+        [string[]]$ClusterNodes,
+        [Parameter(Mandatory = $true)]
+        [string]$ClusterIP,
         [ValidateSet("Cloud","FileShare")]
         [string]$WitnessType = "FileShare",
         [string]$AzStorageAccount = "",
         [string]$AzStorageKey     = "",
-        [string]$FileShareWitness = "\\FS01\ClusterWitness$",
+        [string]$FileShareWitness = "",
         [string]$VolumeName = "CSV_S2D",
         [string]$VolumeSize,
         [ValidateSet("Auto","Fixed")]
@@ -20,6 +23,13 @@ Cluster creation + S2D. Run ONCE from one node.
         [int]$CapacityReservePercent = 20,
         [switch]$UseFullPool
     )
+
+    if ($WitnessType -eq "FileShare" -and [string]::IsNullOrWhiteSpace($FileShareWitness)) {
+        throw "WitnessType=FileShare requires -FileShareWitness (UNC path, e.g. \\FS01\Witness$)."
+    }
+    if ($WitnessType -eq "Cloud" -and ([string]::IsNullOrWhiteSpace($AzStorageAccount) -or [string]::IsNullOrWhiteSpace($AzStorageKey))) {
+        throw "WitnessType=Cloud requires -AzStorageAccount and -AzStorageKey."
+    }
 
     Write-S2DLog "== Cluster - Creating $ClusterName ($ClusterIP) =="
 
