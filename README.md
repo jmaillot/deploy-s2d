@@ -46,8 +46,19 @@ vSwitch for 1), disables VMQ/RSC, sets live migration to SMB.
 |---|---|---|
 | `MgmtAdapters`, `VMAdapters` | no — picker if omitted | Any count (1+). Pass a comma list, or pick in the console menu. Already-picked NICs are hidden; one NIC can't serve two roles |
 | `StorageA/B`, `LiveMigrationAdapter` | no — picker if omitted | Exactly **2 storage adapters** (one becomes StorageA, one StorageB — the two fabrics) and exactly **1 LiveMigration adapter**. One console menu per role |
-| `StorageAIP/BIP` | yes | This node's storage IPs (differ per node); can't be discovered, so still `Mandatory` |
-| `StoragePrefix` | no | Default `24` |
+| `StorageAIP/BIP` | yes | This node's storage IPs (differ per node); must parse, must differ, must sit on **different subnets** (multipath) |
+| `StoragePrefix` | no | Default `24` (range 1–31) |
+| `LiveMigrationIP/Prefix` | no | Optional. If supplied, LiveMig gets the IP and is bound as *the* migration network (`Set-VMHost`); if omitted you get a warning and migration traffic stays unbound |
+| `LogPath` | no | Default `C:\S2D_Deployment.log` |
+
+Preflight runs before anything changes (reads only, so it also runs under
+`-WhatIf`): ≥4 physical NICs, 10 Gbps+ link + proven RDMA on Storage/LiveMig
+(missing SMB binding info falls back to adapter RDMA settings — unproven RDMA
+throws), poolable disks present (`CanPool`, i.e. PERC must be HBA/pass-through,
+not RAID), all-HDD warns (no cache tier), plus a driver table and a BIOS
+virtualization check (both advisory). Requires elevation. Renames are verified
+after the fact — a collision from a prior partial run throws loudly instead of
+misconfiguring. QoS cleanup touches only our `SMBDirect` policy.
 
 Omit NIC names to get guided picking: one numbered console menu per role, each
 stating the role your pick **will be renamed to** (`1/5` = StorageA, `2/5` =

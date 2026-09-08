@@ -27,6 +27,9 @@ Back-compat wrapper. Prefer Start-S2DNodePrep (per node) and New-S2DCluster (onc
         [string]$SizingMode = "Auto",
         [int]$CapacityReservePercent = 20,
         [switch]$UseFullPool,
+        [string]$LiveMigrationIP = "",
+        [int]$LiveMigrationPrefix = 24,
+        [string]$LogPath = "C:\S2D_Deployment.log",
         [ValidateSet("NodePrep","Cluster")]
         [string]$RunPhase
     )
@@ -35,7 +38,7 @@ Back-compat wrapper. Prefer Start-S2DNodePrep (per node) and New-S2DCluster (onc
     # to the inner Mandatory prompt instead of silently inheriting wrapper defaults.
     if ($RunPhase -eq "NodePrep") {
         $nodeParams = @{}
-        foreach ($k in @('MgmtAdapters','VMAdapters','StorageA','StorageB','LiveMigrationAdapter','StorageAIP','StorageBIP','StoragePrefix')) {
+        foreach ($k in @('MgmtAdapters','VMAdapters','StorageA','StorageB','LiveMigrationAdapter','StorageAIP','StorageBIP','StoragePrefix','LiveMigrationIP','LiveMigrationPrefix','LogPath')) {
             if ($PSBoundParameters.ContainsKey($k)) { $nodeParams[$k] = $PSBoundParameters[$k] }
         }
         if ($PSCmdlet.ShouldProcess("local node", "Start-S2DNodePrep")) {
@@ -43,7 +46,7 @@ Back-compat wrapper. Prefer Start-S2DNodePrep (per node) and New-S2DCluster (onc
         }
     } elseif ($RunPhase -eq "Cluster") {
         $p = @{}
-        foreach ($k in @('ClusterName','ClusterNodes','ClusterIP','WitnessType','AzStorageAccount','AzStorageKey','FileShareWitness','VolumeName','VolumeSize','SizingMode','CapacityReservePercent','UseFullPool')) {
+        foreach ($k in @('ClusterName','ClusterNodes','ClusterIP','WitnessType','AzStorageAccount','AzStorageKey','FileShareWitness','VolumeName','VolumeSize','SizingMode','CapacityReservePercent','UseFullPool','LogPath')) {
             if ($PSBoundParameters.ContainsKey($k)) { $p[$k] = $PSBoundParameters[$k] }
         }
         if ($PSCmdlet.ShouldProcess("cluster", "New-S2DCluster")) {

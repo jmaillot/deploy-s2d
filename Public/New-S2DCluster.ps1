@@ -21,7 +21,8 @@ Cluster creation + S2D. Run ONCE from one node.
         [ValidateSet("Auto","Fixed")]
         [string]$SizingMode = "Auto",
         [int]$CapacityReservePercent = 20,
-        [switch]$UseFullPool
+        [switch]$UseFullPool,
+        [string]$LogPath = "C:\S2D_Deployment.log"
     )
 
     if ($WitnessType -eq "FileShare" -and [string]::IsNullOrWhiteSpace($FileShareWitness)) {
@@ -31,6 +32,7 @@ Cluster creation + S2D. Run ONCE from one node.
         throw "WitnessType=Cloud requires -AzStorageAccount and -AzStorageKey."
     }
 
+    $script:S2DLogPath = $LogPath
     Write-S2DLog "== Cluster - Creating $ClusterName ($ClusterIP) =="
 
     Write-S2DLog "Cluster validation (Test-Cluster)"
