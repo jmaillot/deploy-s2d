@@ -102,8 +102,21 @@ Safe reboot (run from the *other* node; `-Force -WhatIf` for a dry run):
 
 Disk health flags (vendored Don MacGregor helper, use as-is):
 
+Clears persistent Health Service flags (*Intent*/*Policy*) that Windows keeps on
+physical disks after an incident. Use it when: a replaced drive still shows as
+unhealthy/retired (ghost state), a healthy disk is wrongly refused for pooling
+(`CanPool = False`) after a transient issue (cable, bay, firmware) you already
+fixed, or you reuse lab disks carrying flags from a previous pool.
+
+Golden rule: **verify real health first, clear flags second — never to mask
+dying hardware.** Clearing on a truly failed disk just re-flags it next cycle,
+with a degraded pool in between.
+
 ```powershell
-Get-PhysicalDisk -UniqueId <id> | Clear-PhysicalDiskHealthData -Intent -Force
+# 1. Check real health first (SMART, LED, operational status)
+Get-PhysicalDisk -SerialNumber <sn> | Format-List FriendlyName, HealthStatus, OperationalStatus
+# 2. Only if hardware is healthy and the flag is stale:
+Get-PhysicalDisk -UniqueId <id> | Clear-PhysicalDiskHealthData -Intent -Policy -Force
 ```
 
 ## Troubleshooting

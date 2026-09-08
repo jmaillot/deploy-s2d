@@ -107,8 +107,22 @@ Redémarrage sûr (depuis l'*autre* nœud ; `-Force -WhatIf` pour répéter) :
 
 Drapeaux de santé des disques (helper Don MacGregor, tel quel) :
 
+Efface les drapeaux persistants (*Intent*/*Policy*) que le Health Service de
+Windows conserve sur les disques après un incident. À utiliser quand : un disque
+remplacé reste affiché malsain/retiré (état fantôme), un disque sain est refusé
+à tort pour l'agrégation (`CanPool = False`) après un incident transitoire
+(câble, baie, firmware) déjà corrigé, ou vous recyclez des disques de lab
+porteurs des drapeaux d'un ancien pool.
+
+Règle d'or : **d'abord vérifier la santé réelle, ensuite effacer — jamais pour
+masquer du matériel mourant.** Effacer sur un disque vraiment en panne le fait
+juste retomber en erreur au cycle suivant, avec un pool dégradé entre-temps.
+
 ```powershell
-Get-PhysicalDisk -UniqueId <id> | Clear-PhysicalDiskHealthData -Intent -Force
+# 1. D'abord la santé réelle (SMART, LED, statut opérationnel)
+Get-PhysicalDisk -SerialNumber <sn> | Format-List FriendlyName, HealthStatus, OperationalStatus
+# 2. Seulement si le matériel est sain et le flag obsolète :
+Get-PhysicalDisk -UniqueId <id> | Clear-PhysicalDiskHealthData -Intent -Policy -Force
 ```
 
 ## Dépannage
