@@ -24,7 +24,9 @@ BeforeAll {
 
     Mock -ModuleName Deploy-S2D Add-Content -MockWith {}
     Mock -ModuleName Deploy-S2D Get-NetAdapter -MockWith {
-        if ($PSBoundParameters.ContainsKey('Name')) {
+        # NOTE: $PSBoundParameters is empty here - Pester exposes the mocked
+        # call's arguments as plain variables, so test $Name directly.
+        if ($Name) {
             [pscustomobject]@{
                 Name = 'mock'; Status = 'Up'; LinkSpeed = '25 Gbps'
                 InterfaceDescription = 'Mock Adapter'; DriverVersion = '1.0'
