@@ -96,7 +96,7 @@ Describe 'Start-S2DNodePrep with existing vSwitch (mocked)' {
         Should -Invoke -ModuleName Deploy-S2D -CommandName Rename-NetAdapter -Times 7 -Exactly
         Should -Invoke -ModuleName Deploy-S2D -CommandName New-NetIPAddress -Times 3 -Exactly
         Should -Invoke -ModuleName Deploy-S2D -CommandName Set-DnsClient -Times 3 -Exactly
-        Should -Invoke -ModuleName Deploy-S2D -CommandName Disable-NetAdapterVmq -Times 4 -Exactly
+        Should -Invoke -ModuleName Deploy-S2D -CommandName Disable-NetAdapterVmq -Times 3 -Exactly
         Should -Invoke -ModuleName Deploy-S2D -CommandName Disable-NetAdapterRsc -Times 1 -Exactly
         Should -Invoke -ModuleName Deploy-S2D -CommandName Enable-NetAdapterVmq -Times 1 -Exactly
         Should -Invoke -ModuleName Deploy-S2D -CommandName Enable-NetAdapterRss -Times 2 -Exactly
