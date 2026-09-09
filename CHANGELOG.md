@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.7.0] - 2026-09-09
 ### Added
 - LiveMig: jumbo MTU, EEE off, DNS registration + NetBIOS off (same hygiene
   as storage); DNS/NetBIOS off also on StorageA/B
